@@ -1,0 +1,20 @@
+{
+  "os": { "build": 22621, "version": "22H2", "edition": "Home" },
+  "cpu": { "vendor": "intel", "name": "Intel(R) Core(TM) i5-1235U", "cores": 10, "threads": 12, "hybrid": true },
+  "gpu": [
+    { "vendor": "intel", "name": "Intel(R) Iris(R) Xe Graphics", "driver": "31.0.101.4502", "vram_mb": 128 }
+  ],
+  "ram_mb": 8192,
+  "storage": [ { "drive": "C:", "type": "ssd" } ],
+  "form_factor": "laptop",
+  "state": {
+    "vbs_enabled": true,
+    "hvci_enabled": true,
+    "hags_enabled": false,
+    "game_mode": true,
+    "game_dvr": true,
+    "power_plan": "Balanced",
+    "fso_global": true,
+    "mouse_accel": true
+  }
+}

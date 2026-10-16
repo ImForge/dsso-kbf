@@ -1,0 +1,21 @@
+{
+  "os": { "build": 26100, "version": "24H2", "edition": "Pro" },
+  "cpu": { "vendor": "intel", "name": "13th Gen Intel(R) Core(TM) i7-13700H", "cores": 14, "threads": 20, "hybrid": true },
+  "gpu": [
+    { "vendor": "nvidia", "name": "NVIDIA GeForce RTX 4060 Laptop GPU", "driver": "566.03", "vram_mb": 8192 },
+    { "vendor": "intel", "name": "Intel(R) Iris(R) Xe Graphics", "driver": "32.0.101.6078", "vram_mb": 128 }
+  ],
+  "ram_mb": 16384,
+  "storage": [ { "drive": "C:", "type": "nvme" } ],
+  "form_factor": "laptop",
+  "state": {
+    "vbs_enabled": true,
+    "hvci_enabled": true,
+    "hags_enabled": true,
+    "game_mode": true,
+    "game_dvr": true,
+    "power_plan": "Balanced",
+    "fso_global": true,
+    "mouse_accel": true
+  }
+}

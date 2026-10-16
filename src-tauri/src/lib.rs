@@ -1,12 +1,12 @@
-mod commands;
-mod engine;
+pub mod commands;
+pub mod engine;
 
 use engine::system;
 use tracing::{error, info};
 
 fn show_error_box(message: &str) {
+    use windows::Win32::UI::WindowsAndMessaging::{MB_ICONERROR, MB_OK, MessageBoxW};
     use windows::core::PCWSTR;
-    use windows::Win32::UI::WindowsAndMessaging::{MessageBoxW, MB_ICONERROR, MB_OK};
 
     let text: Vec<u16> = message.encode_utf16().chain(std::iter::once(0)).collect();
     let caption: Vec<u16> = "Da Sigma Squads Optimizer KBF"
@@ -65,7 +65,10 @@ pub fn run() {
 
     let result = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![commands::startup::startup_status])
+        .invoke_handler(tauri::generate_handler![
+            commands::startup::startup_status,
+            commands::profile::get_system_profile
+        ])
         .run(tauri::generate_context!());
     if let Err(e) = result {
         fatal(&format!("tauri runtime error: {e}"));

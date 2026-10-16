@@ -28,6 +28,7 @@ The product is the **tweak engine** (PowerShell modules with a strict interface)
 - **Admin:** the app must run elevated. Embed a Windows manifest with `requestedExecutionLevel level="requireAdministrator"` via `build.rs` using `tauri_build::WindowsAttributes::app_manifest(...)` (passed through `tauri_build::try_build`). Do NOT add `tauri-winres` or `embed-manifest` — `tauri-build` already embeds a manifest, and a second `RT_MANIFEST` resource causes link errors. Fail loudly at startup if not elevated.
 - Developer uses **Windows CMD**, not PowerShell or WSL. Write all dev/build commands for CMD.
 - Dev note: because of `requireAdministrator`, `npm run tauri dev` must be run from an **elevated** terminal (an unelevated parent cannot spawn the exe — os error 740).
+- Dev note 2: a debug `cargo build` exe loads `devUrl` (http://localhost:1420), not the embedded dist — start Vite first (`npm run dev`) or use `npm run tauri dev`; only release builds serve the embedded frontend.
 
 ## Repo layout
 
@@ -213,6 +214,8 @@ The **Dashboard** page shows: detected hardware summary → recommended profile 
 
 The CLI is a **separate console bin target** (`src-tauri/src/bin/dsso-cli.rs`) that builds `dsso-cli.exe` and shares the same engine code. It is NOT a flag on the GUI exe — the GUI exe is built with the Windows GUI subsystem and has no console, so its stdout is invisible from CMD.
 
+The embedded requireAdministrator manifest applies to every bin in the crate, so `dsso-cli.exe` also demands an elevated terminal (fine — it applies system tweaks anyway). Side effect: `cargo test` cannot execute the CLI bin's test harness unelevated — use `cargo test --lib` (all unit tests live in the lib), or run from an elevated terminal.
+
 `dsso-cli.exe <command>`:
 - `profile` — print SystemProfile JSON
 - `list [--tier safe|caution|advanced]` — list applicable tweaks
@@ -247,7 +250,7 @@ Work through these in order. Finish, test, and commit each phase before starting
 npm install
 npm run tauri dev          (run from an ELEVATED terminal — see Admin note in Stack)
 npm run tauri build
-cargo test --manifest-path src-tauri\Cargo.toml
+cargo test --lib --manifest-path src-tauri\Cargo.toml   (--lib: see CLI section; full `cargo test` needs an elevated terminal)
 powershell -NoProfile -Command "Install-Module Pester -Force -SkipPublisherCheck"   (one-time: upgrade inbox Pester 3.4 to Pester 5)
 powershell -NoProfile -Command "Invoke-Pester tests\pester"
 ```

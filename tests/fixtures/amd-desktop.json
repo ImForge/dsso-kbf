@@ -1,0 +1,23 @@
+{
+  "os": { "build": 22631, "version": "23H2", "edition": "Pro" },
+  "cpu": { "vendor": "amd", "name": "AMD Ryzen 7 7800X3D 8-Core Processor", "cores": 8, "threads": 16, "hybrid": false },
+  "gpu": [
+    { "vendor": "amd", "name": "AMD Radeon RX 7800 XT", "driver": "32.0.12033.1030", "vram_mb": 16384 }
+  ],
+  "ram_mb": 32768,
+  "storage": [
+    { "drive": "C:", "type": "nvme" },
+    { "drive": "D:", "type": "hdd" }
+  ],
+  "form_factor": "desktop",
+  "state": {
+    "vbs_enabled": false,
+    "hvci_enabled": false,
+    "hags_enabled": true,
+    "game_mode": true,
+    "game_dvr": false,
+    "power_plan": "High performance",
+    "fso_global": true,
+    "mouse_accel": false
+  }
+}
