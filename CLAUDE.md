@@ -260,7 +260,7 @@ Work through these in order. Finish, test, and commit each phase before starting
 4. **Rest of the safe tier** (5–8) + profile filtering + Tweaks page + Backups page in the GUI.
 5. **Caution + advanced tiers** (9–14) with proper warnings and opt-in UI.
 6. **Benchmark** — PresentMon integration, metrics, before/after view.
-7. **Polish** — README with screenshots, release build via `tauri build`, GitHub Actions workflow for Windows builds. Sign release builds with **Azure Trusted Signing** so SmartScreen / Smart App Control don't block users.
+7. **Polish** — README with screenshots, release build via `tauri build`, GitHub Actions workflow for Windows builds. Sign release builds with **Azure Trusted Signing** so SmartScreen / Smart App Control don't block users. Note: the NSIS installer ships the GUI + engine + PresentMon; `dsso-cli.exe` cannot be a tauri resource (build.rs validates resource paths before the bin compiles - circular), so the CLI is distributed via the CI portable artifact until the signing phase adds it to the installer with a custom NSIS template.
 
 ## Dev commands (CMD)
 

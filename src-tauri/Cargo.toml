@@ -4,6 +4,8 @@ version = "0.1.0"
 description = "Da Sigma Squads Optimizer KBF — Windows 11 gaming optimizer"
 authors = ["Forge"]
 edition = "2024"
+# Two bins (GUI + dsso-cli); tauri build needs to know which one is the app.
+default-run = "dsso-kbf"
 
 [lib]
 # The `_lib` suffix may seem redundant but it is necessary
