@@ -1,0 +1,18 @@
+{
+  "id": "power-plan-high-performance",
+  "name": "Switch to the High performance power plan",
+  "category": "power",
+  "description": "Activates the High performance plan so the CPU holds higher clocks. Desktop only — on laptops this mostly costs battery and heat for little FPS.",
+  "impact": "medium",
+  "risk": "safe",
+  "requires": {
+    "os_min_build": 22000,
+    "gpu_vendor": null,
+    "cpu_vendor": null,
+    "form_factor": "desktop"
+  },
+  "touches": [
+    "powercfg: active power scheme -> 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c (High performance)"
+  ],
+  "warning": null
+}

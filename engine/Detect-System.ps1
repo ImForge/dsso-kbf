@@ -1,4 +1,4 @@
-# Detect-System.ps1 — emits SystemProfile JSON (schema in CLAUDE.md) to stdout.
+# Detect-System.ps1 - emits SystemProfile JSON (schema in CLAUDE.md) to stdout.
 # Read-only: never changes system state. PowerShell 5.1 compatible.
 
 Set-StrictMode -Version Latest

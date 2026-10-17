@@ -1,0 +1,19 @@
+{
+  "id": "power-plan-balanced-tuned",
+  "name": "Tune the Balanced plan for gaming (laptop)",
+  "category": "power",
+  "description": "Keeps the Balanced plan (battery-friendly) but disables USB selective suspend and PCIe link-state power management on AC power — both can cause input-device hitches and GPU latency.",
+  "impact": "low",
+  "risk": "safe",
+  "requires": {
+    "os_min_build": 22000,
+    "gpu_vendor": null,
+    "cpu_vendor": null,
+    "form_factor": "laptop"
+  },
+  "touches": [
+    "powercfg: SCHEME_CURRENT\\2a737441-1930-4402-8d77-b2bebba308a3\\48e6b7a6-50f5-4782-a5d4-53bb8f07e226 (USB selective suspend, AC) -> 0",
+    "powercfg: SCHEME_CURRENT\\501a4d13-42af-4429-9fd1-a8218c268e20\\ee12f906-d277-404b-b6da-e5fa1a576df5 (PCIe link state power management, AC) -> 0"
+  ],
+  "warning": null
+}

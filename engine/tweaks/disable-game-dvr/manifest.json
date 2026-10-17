@@ -1,0 +1,19 @@
+{
+  "id": "disable-game-dvr",
+  "name": "Disable Xbox Game DVR / background recording",
+  "category": "gaming",
+  "description": "Stops Game Bar background capture, which costs FPS and adds input lag on many systems.",
+  "impact": "medium",
+  "risk": "safe",
+  "requires": {
+    "os_min_build": 22000,
+    "gpu_vendor": null,
+    "cpu_vendor": null,
+    "form_factor": null
+  },
+  "touches": [
+    "HKCU\\System\\GameConfigStore\\GameDVR_Enabled",
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\GameDVR\\AppCaptureEnabled"
+  ],
+  "warning": null
+}

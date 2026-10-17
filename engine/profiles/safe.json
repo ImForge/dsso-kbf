@@ -1,0 +1,11 @@
+{
+  "name": "safe",
+  "tiers": ["safe"],
+  "tweaks": [
+    "disable-game-dvr",
+    "enable-game-mode",
+    "power-plan-high-performance",
+    "power-plan-balanced-tuned",
+    "disable-mouse-acceleration"
+  ]
+}

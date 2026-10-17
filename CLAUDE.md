@@ -120,7 +120,7 @@ Every tweak lives in `engine/tweaks/<id>/` with exactly two files.
 
 ### `tweak.ps1`
 
-Must define exactly these four functions and nothing else at top level:
+Must define exactly these four functions and nothing else at top level — allowed above them: the `Set-StrictMode`/`$ErrorActionPreference` lines, the `Import-Module` of Common.psm1, and read-only configuration variables (registry entries, GUIDs). No other top-level side effects, no extra functions (shared logic goes in Common.psm1):
 
 ```powershell
 function Detect  { ... }   # returns "applied" | "not-applied" | "partial" | "unknown"

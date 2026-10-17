@@ -1,0 +1,18 @@
+{
+  "id": "enable-game-mode",
+  "name": "Enable Windows Game Mode",
+  "category": "gaming",
+  "description": "Ensures Game Mode is on so Windows deprioritises background work while a game runs.",
+  "impact": "low",
+  "risk": "safe",
+  "requires": {
+    "os_min_build": 22000,
+    "gpu_vendor": null,
+    "cpu_vendor": null,
+    "form_factor": null
+  },
+  "touches": [
+    "HKCU\\Software\\Microsoft\\GameBar\\AutoGameModeEnabled"
+  ],
+  "warning": null
+}

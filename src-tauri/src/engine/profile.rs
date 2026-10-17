@@ -101,7 +101,7 @@ pub struct SystemState {
 pub fn detect() -> Result<SystemProfile, PowershellError> {
     let dir = powershell::resolve_engine_dir()?;
     let started = std::time::Instant::now();
-    let profile: SystemProfile = powershell::run_script_json(&dir.join("Detect-System.ps1"))?;
+    let profile: SystemProfile = powershell::run_script_json(&dir.join("Detect-System.ps1"), &[])?;
     tracing::info!(
         elapsed_ms = started.elapsed().as_millis() as u64,
         build = profile.os.build,

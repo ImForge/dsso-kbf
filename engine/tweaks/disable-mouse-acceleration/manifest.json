@@ -1,0 +1,20 @@
+{
+  "id": "disable-mouse-acceleration",
+  "name": "Disable mouse acceleration (Enhance pointer precision)",
+  "category": "input",
+  "description": "Turns off pointer acceleration so mouse distance maps 1:1 to movement — consistent aim in shooters.",
+  "impact": "low",
+  "risk": "safe",
+  "requires": {
+    "os_min_build": 22000,
+    "gpu_vendor": null,
+    "cpu_vendor": null,
+    "form_factor": null
+  },
+  "touches": [
+    "HKCU\\Control Panel\\Mouse\\MouseSpeed",
+    "HKCU\\Control Panel\\Mouse\\MouseThreshold1",
+    "HKCU\\Control Panel\\Mouse\\MouseThreshold2"
+  ],
+  "warning": null
+}
