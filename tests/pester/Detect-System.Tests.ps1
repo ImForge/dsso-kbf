@@ -40,13 +40,23 @@ Describe 'Detect-System.ps1' {
         [int]$script:profile.cpu.threads | Should -BeGreaterOrEqual ([int]$script:profile.cpu.cores)
     }
 
-    It 'gpu is a non-empty array with known fields' {
-        $gpus = @($script:profile.gpu)
-        $gpus.Count | Should -BeGreaterThan 0
-        foreach ($g in $gpus) {
+    It 'gpu entries have known fields' {
+        foreach ($g in @($script:profile.gpu)) {
             $g.vendor | Should -BeIn @('nvidia', 'amd', 'intel', 'unknown')
             [long]$g.vram_mb | Should -BeGreaterOrEqual 0
         }
+    }
+
+    It 'gpu is non-empty when the machine has a PCI display adapter' {
+        # CI VMs (e.g. windows-latest) expose no PCI GPU - an empty array is
+        # the honest answer there, not a detection failure.
+        $pci = @(Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue |
+                Where-Object { $_.PNPDeviceID -like 'PCI\*' })
+        if ($pci.Count -eq 0) {
+            Set-ItResult -Skipped -Because 'no PCI display adapter on this machine'
+            return
+        }
+        @($script:profile.gpu).Count | Should -BeGreaterThan 0
     }
 
     It 'reports positive ram' {
