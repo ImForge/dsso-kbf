@@ -13,6 +13,7 @@ pub struct AppState {
     pub registry_errors: Vec<String>,
     pub profile: Mutex<Option<SystemProfile>>,
     pub apply_lock: Arc<Mutex<()>>,
+    pub bench_lock: Arc<Mutex<()>>,
 }
 
 fn show_error_box(message: &str) {
@@ -86,6 +87,7 @@ pub fn run() {
         registry_errors: errors.iter().map(|e| e.to_string()).collect(),
         profile: Mutex::new(None),
         apply_lock: Arc::new(Mutex::new(())),
+        bench_lock: Arc::new(Mutex::new(())),
     };
 
     let result = tauri::Builder::default()
@@ -101,7 +103,10 @@ pub fn run() {
             commands::tweaks::apply_tweaks,
             commands::backups::list_backup_sessions,
             commands::backups::revert_backup_session,
-            commands::backups::revert_backup_tweak
+            commands::backups::revert_backup_tweak,
+            commands::benchmark::run_game_benchmark,
+            commands::benchmark::run_system_benchmark,
+            commands::benchmark::list_benchmark_runs
         ])
         .run(tauri::generate_context!());
     if let Err(e) = result {

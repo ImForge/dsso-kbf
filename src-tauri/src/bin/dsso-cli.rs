@@ -18,7 +18,9 @@ fn print_usage() {
          \x20 list [--tier safe|caution|advanced]   list applicable tweaks with current state\n\
          \x20 dry-run <profile|tweak-id...>    show exactly what would change, change nothing\n\
          \x20 apply <profile|tweak-id...>      backup + apply tweaks (one session)\n\
-         \x20 revert <session-id|all>          revert a backup session (newest first for all)"
+         \x20 revert <session-id|all>          revert a backup session (newest first for all)\n\
+         \x20 bench --exe <name> --duration <sec> [--label <text>]   timed PresentMon capture\n\
+         \x20 bench --system [--label <text>]  cheap idle metrics (CPU %, RAM, boot time)"
     );
 }
 
@@ -31,6 +33,7 @@ fn main() {
         Some("dry-run") => cmd_dry_run(&args[1..]),
         Some("apply") => cmd_apply(&args[1..]),
         Some("revert") => cmd_revert(&args[1..]),
+        Some("bench") => cmd_bench(&args[1..]),
         _ => {
             print_usage();
             2
@@ -365,6 +368,77 @@ fn cmd_apply(targets: &[String]) -> i32 {
         println!("One or more tweaks need a reboot to take full effect.");
     }
     if failed > 0 { 1 } else { 0 }
+}
+
+fn cmd_bench(args: &[String]) -> i32 {
+    let mut exe: Option<String> = None;
+    let mut duration: u32 = 30;
+    let mut label: Option<String> = None;
+    let mut system = false;
+    let mut it = args.iter();
+    while let Some(arg) = it.next() {
+        match arg.as_str() {
+            "--exe" => exe = it.next().cloned(),
+            "--duration" => {
+                duration = match it.next().and_then(|v| v.parse().ok()) {
+                    Some(d) => d,
+                    None => return fail("--duration needs a number of seconds"),
+                }
+            }
+            "--label" => label = it.next().cloned(),
+            "--system" => system = true,
+            other => return fail(&format!("unknown bench option: {other}")),
+        }
+    }
+
+    if system {
+        let engine = match powershell::resolve_engine_dir() {
+            Ok(d) => d,
+            Err(e) => return fail(&e.to_string()),
+        };
+        println!("Measuring idle system metrics (~5s)...");
+        return match dsso_kbf_lib::engine::benchmark::run_system_metrics(&engine, label) {
+            Ok(run) => {
+                let m = run.system.as_ref();
+                if let Some(m) = m {
+                    println!("CPU usage:  {:.1} %", m.cpu_usage_percent);
+                    println!("RAM used:   {} / {} MB", m.ram_used_mb, m.ram_total_mb);
+                    match m.boot_time_ms {
+                        Some(ms) => println!("Last boot:  {ms} ms"),
+                        None => println!("Last boot:  no event recorded"),
+                    }
+                }
+                println!("Saved as run {}", run.id);
+                0
+            }
+            Err(e) => fail(&e.to_string()),
+        };
+    }
+
+    let Some(exe) = exe else {
+        return fail("usage: bench --exe <name> --duration <sec>  (or bench --system)");
+    };
+    let duration = duration.clamp(5, 600);
+    println!(
+        "Capturing '{exe}' for {duration}s with PresentMon... keep the game in the foreground."
+    );
+    match dsso_kbf_lib::engine::benchmark::run_game_capture(&exe, duration, label) {
+        Ok(run) => {
+            if let Some(g) = &run.game {
+                println!("Frames:      {}", g.frames);
+                println!("Avg FPS:     {:.2}", g.fps_avg);
+                println!("1% low FPS:  {:.2}", g.fps_1_low);
+                println!("0.1% low:    {:.2}", g.fps_01_low);
+                println!(
+                    "Frametime:   {:.2} ms avg, {:.2} ms stddev",
+                    g.frametime_avg_ms, g.frametime_stddev_ms
+                );
+            }
+            println!("Saved as run {}", run.id);
+            0
+        }
+        Err(e) => fail(&e.to_string()),
+    }
 }
 
 fn cmd_revert(args: &[String]) -> i32 {

@@ -144,3 +144,31 @@ export interface RevertEntry {
   ok: boolean;
   error: string | null;
 }
+
+// ---- benchmarks --------------------------------------------------------------
+
+export interface GameMetrics {
+  frames: number;
+  fps_avg: number;
+  fps_1_low: number;
+  fps_01_low: number;
+  frametime_avg_ms: number;
+  frametime_stddev_ms: number;
+}
+
+export interface SystemMetrics {
+  cpu_usage_percent: number;
+  ram_used_mb: number;
+  ram_total_mb: number;
+  boot_time_ms: number | null;
+}
+
+export interface BenchmarkRun {
+  id: string;
+  created: string;
+  label: string | null;
+  process: string | null;
+  duration_s: number | null;
+  game: GameMetrics | null;
+  system: SystemMetrics | null;
+}

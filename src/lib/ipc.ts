@@ -4,6 +4,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   ApplySummary,
+  BenchmarkRun,
   DetectState,
   RevertEntry,
   SessionRecord,
@@ -53,4 +54,24 @@ export function revertBackupSession(sessionId: string): Promise<RevertEntry[]> {
 
 export function revertBackupTweak(sessionId: string, tweakId: string): Promise<void> {
   return invoke<void>("revert_backup_tweak", { sessionId, tweakId });
+}
+
+export function runGameBenchmark(
+  process: string,
+  durationS: number,
+  label?: string,
+): Promise<BenchmarkRun> {
+  return invoke<BenchmarkRun>("run_game_benchmark", {
+    process,
+    durationS,
+    label: label ?? null,
+  });
+}
+
+export function runSystemBenchmark(label?: string): Promise<BenchmarkRun> {
+  return invoke<BenchmarkRun>("run_system_benchmark", { label: label ?? null });
+}
+
+export function listBenchmarkRuns(): Promise<BenchmarkRun[]> {
+  return invoke<BenchmarkRun[]>("list_benchmark_runs");
 }

@@ -2,14 +2,16 @@ import { useEffect, useState } from "react";
 import { getStartupStatus } from "./lib/ipc";
 import type { StartupStatus } from "./lib/types";
 import Backups from "./pages/Backups";
+import Benchmark from "./pages/Benchmark";
 import Dashboard from "./pages/Dashboard";
 import Tweaks from "./pages/Tweaks";
 
-type Page = "dashboard" | "tweaks" | "backups";
+type Page = "dashboard" | "tweaks" | "benchmark" | "backups";
 
 const PAGES: { id: Page; label: string }[] = [
   { id: "dashboard", label: "Dashboard" },
   { id: "tweaks", label: "Tweaks" },
+  { id: "benchmark", label: "Benchmark" },
   { id: "backups", label: "Backups" },
 ];
 
@@ -74,6 +76,7 @@ export default function App() {
         <div className="mt-6 pb-10">
           {page === "dashboard" && <Dashboard />}
           {page === "tweaks" && <Tweaks />}
+          {page === "benchmark" && <Benchmark />}
           {page === "backups" && <Backups />}
         </div>
       </div>
