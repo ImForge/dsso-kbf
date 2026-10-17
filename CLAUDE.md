@@ -117,6 +117,7 @@ Every tweak lives in `engine/tweaks/<id>/` with exactly two files.
 - `requires`: any field may be `null` (no constraint) or a value / array of allowed values. `gpu_vendor`: `nvidia | amd | intel`. `form_factor`: `laptop | desktop`.
 - `touches`: every registry path, service name, scheduled task, or appx package the tweak modifies. Used for dry-run display and backup. Must be complete.
 - `warning`: required (non-null) when `risk` is `caution` or `advanced`.
+- `list_driven` (optional, default false): true for tweaks that act on a per-machine list of items the user confirms individually (e.g. startup entries, appx packages). See "List-driven tweaks" below.
 
 ### `tweak.ps1`
 
@@ -132,11 +133,20 @@ function Revert  { param($BackupDir) ... }   # restores from $BackupDir, returns
 Rules:
 - Import `Common.psm1`. Use its helpers for registry and service work so backup is consistent.
 - `Apply` must be idempotent. Running it twice is harmless.
-- `Revert` must restore the *exact* prior state from backup, not a "sensible default".
+- `Apply` returns `$true`, or `@{ requiresReboot = $true }` when a reboot/sign-out is needed for full effect.
+- `Revert` must restore the *exact* prior state from backup, not a "sensible default", and must be driven ONLY by the backup dir contents (never by `DSSO_KBF_ITEMS`).
 - All output to the host goes through `Write-Result` (JSON to stdout). No `Write-Host` noise.
 - Never `Restart-Computer`. Return `requiresReboot: true` in the result instead.
+- Engine .ps1/.psm1 files are ASCII-only: PowerShell 5.1 reads BOM-less files as ANSI and non-ASCII breaks parsing.
 
-The Rust loader validates every manifest at startup and refuses to load a tweak whose `tweak.ps1` is missing any of the four functions.
+### List-driven tweaks (owner decision 2026-10-17)
+
+A tweak with `"list_driven": true` additionally defines a fifth function `Get-Items` returning an array of `@{ id; name; detail; active }` — the per-machine items (e.g. detected startup entries). Selection is passed via the `DSSO_KBF_ITEMS` env var (comma-separated item ids), set by Invoke-Tweak's `-Items` parameter:
+- `Detect` with no selection returns `unknown`; with a selection it reports over those items.
+- `Apply`/`Backup` THROW when no selection is set (safe by default — "all" must be explicit).
+- The CLI skips list-driven tweaks unless `DSSO_KBF_ITEMS` is set; per-item checkboxes live in the GUI.
+
+The Rust loader validates every manifest at startup and refuses to load a tweak whose `tweak.ps1` is missing any of the four functions (five for list-driven tweaks).
 
 ## System profile schema
 

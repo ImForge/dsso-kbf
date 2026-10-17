@@ -4,6 +4,13 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+function Get-SelectedItemIds {
+    # Parses DSSO_KBF_ITEMS for list-driven tweaks. Returns $null when unset
+    # (meaning: no selection was made).
+    if ([string]::IsNullOrEmpty($env:DSSO_KBF_ITEMS)) { return $null }
+    return @($env:DSSO_KBF_ITEMS -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+}
+
 function Test-Admin {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object Security.Principal.WindowsPrincipal($identity)
@@ -175,6 +182,6 @@ public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, int[
     [void][DssoKbf.MouseNative]::SystemParametersInfo(0x0004, 0, $m, 0x03)
 }
 
-Export-ModuleMember -Function Test-Admin, Write-Result, Resolve-TweakPath, Test-RegValue, `
+Export-ModuleMember -Function Get-SelectedItemIds, Test-Admin, Write-Result, Resolve-TweakPath, Test-RegValue, `
     Get-RegValue, Set-RegValue, Backup-RegKey, Backup-RegValues, Restore-RegValues, `
     Get-ActivePowerSchemeGuid, Get-PowerSettingAcIndex, Set-PowerSettingAcIndex, Update-MouseSettings

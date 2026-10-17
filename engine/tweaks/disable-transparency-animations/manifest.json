@@ -1,0 +1,19 @@
+{
+  "id": "disable-transparency-animations",
+  "name": "Disable transparency and window animations",
+  "category": "ui",
+  "description": "Turns off the acrylic transparency effect and window minimise/maximise animations. Transparency applies immediately; animations fully apply at next sign-in.",
+  "impact": "low",
+  "risk": "safe",
+  "requires": {
+    "os_min_build": 22000,
+    "gpu_vendor": null,
+    "cpu_vendor": null,
+    "form_factor": null
+  },
+  "touches": [
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize\\EnableTransparency",
+    "HKCU\\Control Panel\\Desktop\\WindowMetrics\\MinAnimate"
+  ],
+  "warning": null
+}

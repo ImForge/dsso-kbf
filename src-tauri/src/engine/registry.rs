@@ -107,6 +107,10 @@ pub struct TweakManifest {
     pub requires: Requires,
     pub touches: Vec<String>,
     pub warning: Option<String>,
+    /// True for tweaks acting on a per-machine item list the user confirms
+    /// individually; such tweaks must define a fifth function, Get-Items.
+    #[serde(default)]
+    pub list_driven: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -250,9 +254,12 @@ impl TweakRegistry {
             path: script.display().to_string(),
             source,
         })?;
-        let missing: Vec<&str> = REQUIRED_FUNCTIONS
-            .iter()
-            .copied()
+        let mut required: Vec<&str> = REQUIRED_FUNCTIONS.to_vec();
+        if manifest.list_driven {
+            required.push("Get-Items");
+        }
+        let missing: Vec<&str> = required
+            .into_iter()
             .filter(|f| !defines_function(&body, f))
             .collect();
         if !missing.is_empty() {
@@ -311,6 +318,7 @@ pub enum TweakFunction {
     Backup,
     Apply,
     Revert,
+    GetItems,
 }
 
 impl TweakFunction {
@@ -320,8 +328,19 @@ impl TweakFunction {
             TweakFunction::Backup => "Backup",
             TweakFunction::Apply => "Apply",
             TweakFunction::Revert => "Revert",
+            TweakFunction::GetItems => "Get-Items",
         }
     }
+}
+
+/// One entry of a list-driven tweak's Get-Items output.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TweakItem {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub detail: Option<String>,
+    pub active: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -372,6 +391,7 @@ pub fn invoke(
     tweak: &Tweak,
     function: TweakFunction,
     backup_dir: Option<&Path>,
+    items: Option<&str>,
 ) -> Result<serde_json::Value, InvokeError> {
     let script = engine_dir.join("Invoke-Tweak.ps1");
     let tweak_path = tweak.script_path().display().to_string();
@@ -385,6 +405,10 @@ pub fn invoke(
         args.push("-BackupDir".into());
         args.push(dir.display().to_string());
     }
+    if let Some(items) = items {
+        args.push("-Items".into());
+        args.push(items.to_string());
+    }
     let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let out: FunctionOutput = powershell::run_script_json(&script, &arg_refs)?;
     if !out.ok {
@@ -397,8 +421,12 @@ pub fn invoke(
     Ok(out.value)
 }
 
-pub fn detect(engine_dir: &Path, tweak: &Tweak) -> Result<DetectState, InvokeError> {
-    let value = invoke(engine_dir, tweak, TweakFunction::Detect, None)?;
+pub fn detect(
+    engine_dir: &Path,
+    tweak: &Tweak,
+    items: Option<&str>,
+) -> Result<DetectState, InvokeError> {
+    let value = invoke(engine_dir, tweak, TweakFunction::Detect, None, items)?;
     let state = match value.as_str() {
         Some("applied") => DetectState::Applied,
         Some("not-applied") => DetectState::NotApplied,
@@ -406,6 +434,51 @@ pub fn detect(engine_dir: &Path, tweak: &Tweak) -> Result<DetectState, InvokeErr
         _ => DetectState::Unknown,
     };
     Ok(state)
+}
+
+/// Run a list-driven tweak's Get-Items. PowerShell unwraps single-element
+/// arrays at function boundaries, so a lone object is normalised back into a
+/// one-element list.
+pub fn get_items(engine_dir: &Path, tweak: &Tweak) -> Result<Vec<TweakItem>, InvokeError> {
+    let value = invoke(engine_dir, tweak, TweakFunction::GetItems, None, None)?;
+    let raw = match value {
+        serde_json::Value::Array(a) => a,
+        serde_json::Value::Null => Vec::new(),
+        one => vec![one],
+    };
+    let items = raw
+        .into_iter()
+        .filter_map(|v| serde_json::from_value(v).ok())
+        .collect();
+    Ok(items)
+}
+
+/// A default profile definition from engine/profiles/<name>.json.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProfileDef {
+    pub name: String,
+    pub tiers: Vec<String>,
+    pub tweaks: Vec<String>,
+}
+
+impl TweakRegistry {
+    pub fn load_profile_def(&self, name: &str) -> Option<Result<ProfileDef, String>> {
+        let path = self
+            .engine_dir
+            .join("profiles")
+            .join(format!("{name}.json"));
+        if !path.is_file() {
+            return None;
+        }
+        let load = std::fs::read_to_string(&path)
+            .map_err(|e| format!("cannot read {}: {e}", path.display()))
+            .and_then(|raw| {
+                serde_json::from_str(&raw)
+                    .map_err(|e| format!("invalid profile {}: {e}", path.display()))
+            });
+        Some(load)
+    }
 }
 
 /// Normalise a Backup return value (one path or an array of paths).
@@ -446,8 +519,60 @@ mod tests {
     fn real_engine_tweaks_all_load() {
         let (reg, errors) = TweakRegistry::load(&repo_engine_dir());
         assert!(errors.is_empty(), "refused tweaks: {errors:?}");
-        assert_eq!(reg.all().len(), 5);
+        assert_eq!(reg.all().len(), 9);
         assert!(reg.get("disable-game-dvr").is_some());
+        let startup = reg.get("disable-startup-bloat").expect("startup tweak");
+        assert!(startup.manifest.list_driven);
+    }
+
+    #[test]
+    fn default_profiles_load_and_name_known_tweaks() {
+        let (reg, _) = TweakRegistry::load(&repo_engine_dir());
+        for name in ["safe", "balanced", "aggressive"] {
+            let def = reg
+                .load_profile_def(name)
+                .unwrap_or_else(|| panic!("{name}.json missing"))
+                .unwrap_or_else(|e| panic!("{name}: {e}"));
+            assert!(!def.tweaks.is_empty());
+            for id in &def.tweaks {
+                assert!(
+                    reg.get(id).is_some(),
+                    "profile {name} names unknown tweak {id}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn list_driven_without_get_items_is_refused() {
+        let dir = std::env::temp_dir()
+            .join("dsso-kbf-test-manifest")
+            .join("bad-list-tweak");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("mkdir");
+        std::fs::write(
+            dir.join("manifest.json"),
+            r#"{
+              "id": "bad-list-tweak", "name": "x", "category": "x", "description": "x",
+              "impact": "low", "risk": "safe", "list_driven": true,
+              "requires": { "os_min_build": null, "gpu_vendor": null, "cpu_vendor": null, "form_factor": null },
+              "touches": ["HKCU\\X"], "warning": null
+            }"#,
+        )
+        .expect("write manifest");
+        std::fs::write(
+            dir.join("tweak.ps1"),
+            "function Detect {}\nfunction Backup {}\nfunction Apply {}\nfunction Revert {}\n",
+        )
+        .expect("write script");
+
+        let err = TweakRegistry::load_one(&dir).expect_err("must refuse");
+        match err {
+            RegistryError::MissingFunctions { missing, .. } => {
+                assert!(missing.contains("Get-Items"), "{missing}");
+            }
+            other => panic!("wrong error: {other}"),
+        }
     }
 
     #[test]

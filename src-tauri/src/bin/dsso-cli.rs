@@ -6,7 +6,6 @@ use std::path::PathBuf;
 
 use dsso_kbf_lib::engine::{backup, logging, powershell, profile, registry};
 use registry::{Risk, Tweak, TweakRegistry};
-use serde::Deserialize;
 
 fn print_usage() {
     eprintln!(
@@ -56,15 +55,6 @@ fn load_registry() -> Result<TweakRegistry, String> {
     Ok(reg)
 }
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct ProfileFile {
-    name: String,
-    #[allow(dead_code)]
-    tiers: Vec<String>,
-    tweaks: Vec<String>,
-}
-
 /// Resolve CLI targets (tweak ids and/or profile names) into applicable tweaks,
 /// preserving order and deduplicating. Non-applicable tweaks are skipped with a
 /// warning; unknown targets are an error.
@@ -97,15 +87,8 @@ fn resolve_targets<'a>(
             push(tweak, false);
             continue;
         }
-        let profile_path = reg
-            .engine_dir()
-            .join("profiles")
-            .join(format!("{target}.json"));
-        if profile_path.is_file() {
-            let raw = std::fs::read_to_string(&profile_path)
-                .map_err(|e| format!("cannot read {}: {e}", profile_path.display()))?;
-            let pf: ProfileFile = serde_json::from_str(&raw)
-                .map_err(|e| format!("invalid profile {}: {e}", profile_path.display()))?;
+        if let Some(loaded) = reg.load_profile_def(target) {
+            let pf = loaded?;
             for id in &pf.tweaks {
                 match reg.get(id) {
                     Some(tweak) => push(tweak, true),
@@ -179,7 +162,7 @@ fn cmd_list(args: &[String]) -> i32 {
         .collect();
     println!("Applicable tweaks: {}\n", tweaks.len());
     for tweak in tweaks {
-        let state = registry::detect(reg.engine_dir(), tweak)
+        let state = registry::detect(reg.engine_dir(), tweak, None)
             .map(|s| s.to_string())
             .unwrap_or_else(|e| format!("detect-error: {e}"));
         println!(
@@ -217,7 +200,7 @@ fn cmd_dry_run(targets: &[String]) -> i32 {
 
     println!("DRY RUN — nothing will be changed.\n");
     for tweak in tweaks {
-        let state = registry::detect(reg.engine_dir(), tweak)
+        let state = registry::detect(reg.engine_dir(), tweak, None)
             .map(|s| s.to_string())
             .unwrap_or_else(|e| format!("detect-error: {e}"));
         println!("{} — {}", tweak.id(), tweak.manifest.name);
@@ -231,6 +214,22 @@ fn cmd_dry_run(targets: &[String]) -> i32 {
         println!("  would change:");
         for touch in &tweak.manifest.touches {
             println!("    {touch}");
+        }
+        if tweak.manifest.list_driven {
+            match registry::get_items(reg.engine_dir(), tweak) {
+                Ok(items) => {
+                    println!("  detected items (select via DSSO_KBF_ITEMS or the GUI):");
+                    for item in items {
+                        println!(
+                            "    [{}] {:<30} {}",
+                            if item.active { "on " } else { "off" },
+                            item.id,
+                            item.detail.unwrap_or_default()
+                        );
+                    }
+                }
+                Err(e) => println!("  item detection failed: {e}"),
+            }
         }
         println!();
     }
@@ -281,9 +280,26 @@ fn cmd_apply(targets: &[String]) -> i32 {
     );
 
     let mut failed = 0usize;
+    let cli_items = std::env::var("DSSO_KBF_ITEMS")
+        .ok()
+        .filter(|s| !s.is_empty());
     let mut reboot = false;
     for tweak in tweaks {
-        match backup::apply_tweak(&reg, &mut session, tweak) {
+        let items = if tweak.manifest.list_driven {
+            match &cli_items {
+                Some(items) => Some(items.as_str()),
+                None => {
+                    println!(
+                        "  {:<28} skipped (list-driven: set DSSO_KBF_ITEMS or use the GUI)",
+                        tweak.id()
+                    );
+                    continue;
+                }
+            }
+        } else {
+            None
+        };
+        match backup::apply_tweak(&reg, &mut session, tweak, items) {
             Ok(outcome) => {
                 reboot = reboot || outcome.record.requires_reboot;
                 match outcome.record.status {

@@ -65,6 +65,10 @@ pub struct TweakRunRecord {
     pub error: Option<String>,
     #[serde(default)]
     pub backup_files: Vec<String>,
+    /// Selected item ids for list-driven tweaks (informational; Revert is
+    /// driven purely by the backup dir contents).
+    #[serde(default)]
+    pub items: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -194,9 +198,13 @@ pub fn apply_tweak(
     registry: &TweakRegistry,
     session: &mut Session,
     tweak: &Tweak,
+    items: Option<&str>,
 ) -> Result<ApplyOutcome, BackupError> {
     let engine = registry.engine_dir();
-    let before = registry::detect(engine, tweak)?;
+    let before = registry::detect(engine, tweak, items)?;
+    let item_list: Vec<String> = items
+        .map(|s| s.split(',').map(|x| x.trim().to_string()).collect())
+        .unwrap_or_default();
 
     if before == DetectState::Applied {
         let rec = TweakRunRecord {
@@ -205,6 +213,7 @@ pub fn apply_tweak(
             requires_reboot: false,
             error: None,
             backup_files: Vec::new(),
+            items: item_list,
         };
         session.record_tweak(rec.clone())?;
         return Ok(ApplyOutcome {
@@ -216,18 +225,25 @@ pub fn apply_tweak(
 
     let backup_dir = session.tweak_backup_dir(tweak.id());
     std::fs::create_dir_all(&backup_dir).map_err(io_err(&backup_dir))?;
-    let backup_files = registry::invoke(engine, tweak, TweakFunction::Backup, Some(&backup_dir))
-        .map(|v| registry::value_as_strings(&v))?;
+    let backup_files = registry::invoke(
+        engine,
+        tweak,
+        TweakFunction::Backup,
+        Some(&backup_dir),
+        items,
+    )
+    .map(|v| registry::value_as_strings(&v))?;
 
-    match registry::invoke(engine, tweak, TweakFunction::Apply, None) {
+    match registry::invoke(engine, tweak, TweakFunction::Apply, None, items) {
         Ok(value) => {
-            let after = registry::detect(engine, tweak).unwrap_or(DetectState::Unknown);
+            let after = registry::detect(engine, tweak, items).unwrap_or(DetectState::Unknown);
             let rec = TweakRunRecord {
                 id: tweak.id().to_string(),
                 status: TweakRunStatus::Applied,
                 requires_reboot: registry::value_requires_reboot(&value),
                 error: None,
                 backup_files,
+                items: item_list,
             };
             session.record_tweak(rec.clone())?;
             Ok(ApplyOutcome {
@@ -243,6 +259,7 @@ pub fn apply_tweak(
                 requires_reboot: false,
                 error: Some(e.to_string()),
                 backup_files,
+                items: item_list,
             };
             session.record_tweak(rec.clone())?;
             Ok(ApplyOutcome {
@@ -279,7 +296,13 @@ pub fn revert_session(
             continue;
         };
         let backup_dir = dir.join(&rec.id);
-        match registry::invoke(engine, tweak, TweakFunction::Revert, Some(&backup_dir)) {
+        match registry::invoke(
+            engine,
+            tweak,
+            TweakFunction::Revert,
+            Some(&backup_dir),
+            None,
+        ) {
             Ok(_) => {
                 rec.status = TweakRunStatus::Reverted;
                 results.push((rec.id.clone(), Ok(())));
@@ -290,4 +313,33 @@ pub fn revert_session(
 
     save_record(dir, &record)?;
     Ok(results)
+}
+
+/// Revert ONE applied tweak of a session (the Backups page allows per-tweak
+/// revert). Fails when the tweak was not applied in that session.
+pub fn revert_tweak_in_session(
+    registry: &TweakRegistry,
+    dir: &Path,
+    tweak_id: &str,
+) -> Result<(), BackupError> {
+    let mut record = load_session(dir)?;
+    let engine = registry.engine_dir();
+    let rec = record
+        .tweaks
+        .iter_mut()
+        .find(|r| r.id == tweak_id && r.status == TweakRunStatus::Applied)
+        .ok_or_else(|| BackupError::SessionNotFound(format!("{tweak_id} (applied) in session")))?;
+    let tweak = registry
+        .get(tweak_id)
+        .ok_or_else(|| BackupError::SessionNotFound(format!("tweak {tweak_id} in registry")))?;
+    let backup_dir = dir.join(tweak_id);
+    registry::invoke(
+        engine,
+        tweak,
+        TweakFunction::Revert,
+        Some(&backup_dir),
+        None,
+    )?;
+    rec.status = TweakRunStatus::Reverted;
+    save_record(dir, &record)
 }

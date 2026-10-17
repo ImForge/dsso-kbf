@@ -1,0 +1,33 @@
+{
+  "id": "remove-appx-bloat",
+  "name": "Remove preinstalled apps (you pick which)",
+  "category": "debloat",
+  "description": "Removes the preinstalled apps YOU select from a curated candidate list (Cortana, consumer Teams, Solitaire, News...) for the current user. Deliberately excluded: the new Xbox app, Game Bar and Gaming Services - Game Pass and Game Mode features need them. Revert re-registers the staged package; if Windows has cleaned it up, reinstall from the Microsoft Store.",
+  "impact": "low",
+  "risk": "safe",
+  "list_driven": true,
+  "requires": {
+    "os_min_build": 22000,
+    "gpu_vendor": null,
+    "cpu_vendor": null,
+    "form_factor": null
+  },
+  "touches": [
+    "appx: Microsoft.XboxApp (legacy Console Companion)",
+    "appx: Microsoft.549981C3F5F10 (Cortana)",
+    "appx: MicrosoftTeams (consumer)",
+    "appx: Microsoft.GetHelp",
+    "appx: Microsoft.Getstarted",
+    "appx: Microsoft.MicrosoftSolitaireCollection",
+    "appx: Microsoft.BingNews",
+    "appx: Microsoft.BingWeather",
+    "appx: Microsoft.MicrosoftOfficeHub",
+    "appx: Microsoft.SkypeApp",
+    "appx: Microsoft.WindowsFeedbackHub",
+    "appx: Microsoft.People",
+    "appx: Microsoft.WindowsMaps",
+    "appx: Clipchamp.Clipchamp",
+    "appx: Microsoft.MixedReality.Portal"
+  ],
+  "warning": null
+}

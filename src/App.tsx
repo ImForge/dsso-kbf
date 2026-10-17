@@ -1,7 +1,17 @@
 import { useEffect, useState } from "react";
 import { getStartupStatus } from "./lib/ipc";
 import type { StartupStatus } from "./lib/types";
+import Backups from "./pages/Backups";
 import Dashboard from "./pages/Dashboard";
+import Tweaks from "./pages/Tweaks";
+
+type Page = "dashboard" | "tweaks" | "backups";
+
+const PAGES: { id: Page; label: string }[] = [
+  { id: "dashboard", label: "Dashboard" },
+  { id: "tweaks", label: "Tweaks" },
+  { id: "backups", label: "Backups" },
+];
 
 function AdminBadge({ status }: { status: StartupStatus | null }) {
   if (!status) {
@@ -22,6 +32,7 @@ function AdminBadge({ status }: { status: StartupStatus | null }) {
 
 export default function App() {
   const [status, setStatus] = useState<StartupStatus | null>(null);
+  const [page, setPage] = useState<Page>("dashboard");
 
   useEffect(() => {
     getStartupStatus()
@@ -38,15 +49,32 @@ export default function App() {
               Da Sigma Squads Optimizer <span className="text-emerald-400">KBF</span>
             </h1>
             <p className="mt-0.5 text-xs text-zinc-500">
-              Phase 2 — hardware detection
-              {status ? ` · build ${status.osBuild}.${status.osRevision}` : ""}
+              {status ? `Windows 11 build ${status.osBuild}.${status.osRevision}` : "…"}
             </p>
           </div>
           <AdminBadge status={status} />
         </header>
 
-        <div className="mt-6">
-          <Dashboard />
+        <nav className="mt-5 flex gap-1 border-b border-zinc-800">
+          {PAGES.map((p) => (
+            <button
+              key={p.id}
+              className={`-mb-px border-b-2 px-3 py-2 text-sm ${
+                page === p.id
+                  ? "border-emerald-500 font-medium text-zinc-100"
+                  : "border-transparent text-zinc-500 hover:text-zinc-300"
+              }`}
+              onClick={() => setPage(p.id)}
+            >
+              {p.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="mt-6 pb-10">
+          {page === "dashboard" && <Dashboard />}
+          {page === "tweaks" && <Tweaks />}
+          {page === "backups" && <Backups />}
         </div>
       </div>
     </main>

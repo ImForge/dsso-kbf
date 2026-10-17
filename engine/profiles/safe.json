@@ -6,6 +6,10 @@
     "enable-game-mode",
     "power-plan-high-performance",
     "power-plan-balanced-tuned",
-    "disable-mouse-acceleration"
+    "disable-mouse-acceleration",
+    "disable-startup-bloat",
+    "remove-appx-bloat",
+    "visual-effects-performance",
+    "disable-transparency-animations"
   ]
 }

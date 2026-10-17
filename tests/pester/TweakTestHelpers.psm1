@@ -11,8 +11,9 @@ $script:EngineDir = (Resolve-Path (Join-Path $PSScriptRoot '..\..\engine')).Path
 function Invoke-TweakFunction {
     param(
         [Parameter(Mandatory)][string]$TweakId,
-        [Parameter(Mandatory)][ValidateSet('Detect', 'Backup', 'Apply', 'Revert')][string]$Function,
-        [string]$BackupDir
+        [Parameter(Mandatory)][ValidateSet('Detect', 'Backup', 'Apply', 'Revert', 'Get-Items')][string]$Function,
+        [string]$BackupDir,
+        [string]$Items
     )
     $invoke = Join-Path $script:EngineDir 'Invoke-Tweak.ps1'
     $tweak = Join-Path $script:EngineDir "tweaks\$TweakId\tweak.ps1"
@@ -21,6 +22,7 @@ function Invoke-TweakFunction {
         '-File', $invoke, '-TweakPath', $tweak, '-Function', $Function
     )
     if ($BackupDir) { $psArgs += @('-BackupDir', $BackupDir) }
+    if ($Items) { $psArgs += @('-Items', $Items) }
     $out = & $script:PsExe @psArgs
     if ($LASTEXITCODE -ne 0) { throw "Invoke-Tweak exited $LASTEXITCODE : $($out -join "`n")" }
     $result = ($out -join "`n") | ConvertFrom-Json

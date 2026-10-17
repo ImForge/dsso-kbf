@@ -1,0 +1,22 @@
+{
+  "id": "visual-effects-performance",
+  "name": "Trim expensive visual effects",
+  "category": "ui",
+  "description": "Switches visual effects to a custom profile that disables the costly ones (taskbar animations, listview fades/shadows, full-window dragging) while keeping font smoothing and thumbnails. Needs sign-out for full effect.",
+  "impact": "low",
+  "risk": "safe",
+  "requires": {
+    "os_min_build": 22000,
+    "gpu_vendor": null,
+    "cpu_vendor": null,
+    "form_factor": null
+  },
+  "touches": [
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects\\VisualFXSetting",
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\\TaskbarAnimations",
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\\ListviewAlphaSelect",
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced\\ListviewShadow",
+    "HKCU\\Control Panel\\Desktop\\DragFullWindows"
+  ],
+  "warning": null
+}

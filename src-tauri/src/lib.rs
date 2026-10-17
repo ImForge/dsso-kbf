@@ -1,8 +1,19 @@
 pub mod commands;
 pub mod engine;
 
+use std::sync::{Arc, Mutex};
+
+use engine::profile::SystemProfile;
+use engine::registry::TweakRegistry;
 use engine::system;
 use tracing::{error, info};
+
+pub struct AppState {
+    pub registry: Arc<TweakRegistry>,
+    pub registry_errors: Vec<String>,
+    pub profile: Mutex<Option<SystemProfile>>,
+    pub apply_lock: Arc<Mutex<()>>,
+}
 
 fn show_error_box(message: &str) {
     use windows::Win32::UI::WindowsAndMessaging::{MB_ICONERROR, MB_OK, MessageBoxW};
@@ -63,11 +74,33 @@ pub fn run() {
     }
     info!("running elevated");
 
+    let engine_dir = match engine::powershell::resolve_engine_dir() {
+        Ok(d) => d,
+        Err(e) => fatal(&format!(
+            "The tweak engine folder is missing ({e}). Reinstall Da Sigma Squads Optimizer KBF."
+        )),
+    };
+    let (registry, errors) = TweakRegistry::load(&engine_dir);
+    let state = AppState {
+        registry: Arc::new(registry),
+        registry_errors: errors.iter().map(|e| e.to_string()).collect(),
+        profile: Mutex::new(None),
+        apply_lock: Arc::new(Mutex::new(())),
+    };
+
     let result = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .manage(state)
         .invoke_handler(tauri::generate_handler![
             commands::startup::startup_status,
-            commands::profile::get_system_profile
+            commands::profile::get_system_profile,
+            commands::tweaks::list_tweaks,
+            commands::tweaks::detect_tweak,
+            commands::tweaks::get_tweak_items,
+            commands::tweaks::apply_tweaks,
+            commands::backups::list_backup_sessions,
+            commands::backups::revert_backup_session,
+            commands::backups::revert_backup_tweak
         ])
         .run(tauri::generate_context!());
     if let Err(e) = result {

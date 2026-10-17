@@ -1,0 +1,20 @@
+{
+  "id": "disable-startup-bloat",
+  "name": "Disable startup programs (you pick which)",
+  "category": "startup",
+  "description": "Lists every program that auto-starts from the registry Run keys and disables the ones YOU select, the same way Task Manager does. Nothing is uninstalled; re-enable any time. Startup-folder shortcuts are not covered yet.",
+  "impact": "medium",
+  "risk": "safe",
+  "list_driven": true,
+  "requires": {
+    "os_min_build": 22000,
+    "gpu_vendor": null,
+    "cpu_vendor": null,
+    "form_factor": null
+  },
+  "touches": [
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run (per selected item)",
+    "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run (per selected item)"
+  ],
+  "warning": null
+}
