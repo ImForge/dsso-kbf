@@ -198,7 +198,7 @@ Safe tier:
 Caution tier:
 9. `toggle-hags` (recommend based on GPU vendor + driver; expose as a toggle, not a one-way switch)
 10. `disable-fullscreen-optimizations-global`
-11. `nvidia-low-latency-prefer-max-perf` (requires nvidia) - DEFERRED 2026-10-17: "Low Latency Mode" and "Prefer maximum performance" live in NVIDIA's nvdrsdb driver-profile blob and are only settable via NVAPI, not plain registry/PowerShell. Faking it with registry pokes would break the honesty + measurability rules. Needs a bundled NVAPI helper (nvidiaProfileInspector-style) before it can ship honestly; not implemented in phase 5.
+11. `nvidia-low-latency-prefer-max-perf` (requires nvidia) - implemented 2026-10-17 via NVAPI's DRS API, called directly from tweak.ps1 (Add-Type P/Invoke of nvapi64.dll's nvapi_QueryInterface - no registry pokes, no bundled binary). Sets base-profile PRERENDERLIMIT (0x007BA09E) = 1 ("Low Latency Mode: On"; "Ultra" uses an undocumented setting id, deliberately not shipped) and PREFERRED_PSTATE (0x1057EB71) = 1 (prefer max performance). Backup stores each setting's exact prior user-set/value state; Revert writes it back or deletes the setting to restore the driver default; Apply verifies by re-reading through a fresh DRS session. nvidia-smi was evaluated and cannot touch DRS settings. Live round trip is Pester-gated behind DSSO_KBF_INTEGRATION (needs an NVIDIA GPU).
 12. `disable-nagle` (per adapter; `impact` must be `low` and the description must be honest: Nagle only affects TCP-based games — most modern games use UDP, where this does nothing)
 13. `services-trim` (SysMain, DiagTrack, Print Spooler if no printer — detect first; set to Manual + stop, exact-state revert — owner decision 2026-10-17)
 

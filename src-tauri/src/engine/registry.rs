@@ -573,7 +573,7 @@ mod tests {
     fn real_engine_tweaks_all_load() {
         let (reg, errors) = TweakRegistry::load(&repo_engine_dir());
         assert!(errors.is_empty(), "refused tweaks: {errors:?}");
-        assert_eq!(reg.all().len(), 14);
+        assert_eq!(reg.all().len(), 15);
         assert!(reg.get("disable-game-dvr").is_some());
         let startup = reg.get("disable-startup-bloat").expect("startup tweak");
         assert!(startup.manifest.list_driven);

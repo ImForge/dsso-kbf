@@ -1,0 +1,19 @@
+{
+  "id": "nvidia-low-latency-prefer-max-perf",
+  "name": "NVIDIA Low Latency Mode + Prefer maximum performance",
+  "category": "gpu",
+  "description": "Sets the global NVIDIA driver profile to Low Latency Mode = On (at most 1 pre-rendered frame) and Power management mode = Prefer maximum performance, through NVAPI - the same settings store the NVIDIA Control Panel writes. Low Latency Mode can reduce input lag when the GPU is the bottleneck; it does nothing (or costs a little throughput) in CPU-bound games. Prefer maximum performance keeps the GPU at higher clocks at the cost of idle power and heat. Takes effect for newly launched games, no reboot.",
+  "impact": "low",
+  "risk": "caution",
+  "requires": {
+    "os_min_build": 22000,
+    "gpu_vendor": "nvidia",
+    "cpu_vendor": null,
+    "form_factor": null
+  },
+  "touches": [
+    "NVIDIA driver profile store (nvdrsdb), base profile: PRERENDERLIMIT (0x007BA09E) via NVAPI",
+    "NVIDIA driver profile store (nvdrsdb), base profile: PREFERRED_PSTATE (0x1057EB71) via NVAPI"
+  ],
+  "warning": "Changes the GLOBAL driver profile, so it affects every 3D application. Prefer maximum performance raises idle power draw and heat - that matters on laptops. Low Latency Mode can slightly lower average FPS in CPU-bound games. Benchmark before and after; Revert restores your exact previous NVIDIA Control Panel values."
+}
