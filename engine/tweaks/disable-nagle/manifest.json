@@ -1,0 +1,20 @@
+{
+  "id": "disable-nagle",
+  "name": "Disable Nagle's algorithm (per network adapter)",
+  "category": "network",
+  "description": "Disables Nagle coalescing on the network adapters YOU select. This only affects TCP traffic - most modern games use UDP, where this does nothing. Worth it only for games you know use TCP. Can slightly raise bandwidth overhead.",
+  "impact": "low",
+  "risk": "caution",
+  "list_driven": true,
+  "requires": {
+    "os_min_build": 22000,
+    "gpu_vendor": null,
+    "cpu_vendor": null,
+    "form_factor": null
+  },
+  "touches": [
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces\\<adapter>\\TcpAckFrequency (per selected adapter)",
+    "HKLM\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters\\Interfaces\\<adapter>\\TCPNoDelay (per selected adapter)"
+  ],
+  "warning": "Only helps TCP-based games; most games use UDP and see no change. Apply only to the adapter you actually game on."
+}

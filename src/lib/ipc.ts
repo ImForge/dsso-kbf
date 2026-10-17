@@ -9,6 +9,7 @@ import type {
   SessionRecord,
   StartupStatus,
   SystemProfile,
+  ToggleInfo,
   TweakItem,
   TweakListEntry,
   TweakSelection,
@@ -32,6 +33,10 @@ export function detectTweak(id: string, items?: string[]): Promise<DetectState> 
 
 export function getTweakItems(id: string): Promise<TweakItem[]> {
   return invoke<TweakItem[]>("get_tweak_items", { id });
+}
+
+export function getTweakToggle(id: string): Promise<ToggleInfo> {
+  return invoke<ToggleInfo>("get_tweak_toggle", { id });
 }
 
 export function applyTweaks(selections: TweakSelection[]): Promise<ApplySummary> {

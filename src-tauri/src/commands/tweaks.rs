@@ -3,7 +3,9 @@ use tauri::State;
 
 use crate::AppState;
 use crate::engine::backup::{self, RestorePointResult, TweakRunStatus};
-use crate::engine::registry::{self, DetectState, TweakItem, TweakManifest};
+use crate::engine::registry::{
+    self, DetectState, InvokeOpts, ToggleInfo, TweakItem, TweakManifest,
+};
 
 #[derive(Debug, Serialize)]
 pub struct TweakListEntry {
@@ -30,12 +32,35 @@ pub async fn detect_tweak(
     state: State<'_, AppState>,
     id: String,
     items: Option<Vec<String>>,
+    target: Option<String>,
 ) -> Result<DetectState, String> {
     let reg = state.registry.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let tweak = reg.get(&id).ok_or_else(|| format!("unknown tweak: {id}"))?;
         let items_str = items.map(|v| v.join(","));
-        registry::detect(reg.engine_dir(), tweak, items_str.as_deref()).map_err(|e| e.to_string())
+        let opts = InvokeOpts {
+            items: items_str.as_deref(),
+            target: target.as_deref(),
+            ..Default::default()
+        };
+        registry::detect(reg.engine_dir(), tweak, &opts).map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+#[tauri::command]
+pub async fn get_tweak_toggle(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<ToggleInfo, String> {
+    let reg = state.registry.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let tweak = reg.get(&id).ok_or_else(|| format!("unknown tweak: {id}"))?;
+        if !tweak.manifest.toggle {
+            return Err(format!("{id} is not a toggle tweak"));
+        }
+        registry::get_toggle(reg.engine_dir(), tweak).map_err(|e| e.to_string())
     })
     .await
     .map_err(|e| e.to_string())?
@@ -63,6 +88,9 @@ pub struct TweakSelection {
     pub id: String,
     #[serde(default)]
     pub items: Option<Vec<String>>,
+    /// "on" | "off" for toggle tweaks.
+    #[serde(default)]
+    pub target: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -132,8 +160,21 @@ pub async fn apply_tweaks(
                 }
                 (false, _) => None,
             };
+            let target = match (&tweak.manifest.toggle, &sel.target) {
+                (true, Some(t)) if t == "on" || t == "off" => Some(t.as_str()),
+                (true, _) => {
+                    results.push(ApplyResultEntry {
+                        id: sel.id.clone(),
+                        status: TweakRunStatus::Failed,
+                        requires_reboot: false,
+                        error: Some("no on/off target chosen".into()),
+                    });
+                    continue;
+                }
+                (false, _) => None,
+            };
 
-            match backup::apply_tweak(&reg, &mut session, tweak, items_str.as_deref()) {
+            match backup::apply_tweak(&reg, &mut session, tweak, items_str.as_deref(), target) {
                 Ok(outcome) => results.push(ApplyResultEntry {
                     id: sel.id.clone(),
                     status: outcome.record.status,

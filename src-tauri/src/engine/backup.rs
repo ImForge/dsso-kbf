@@ -69,6 +69,9 @@ pub struct TweakRunRecord {
     /// driven purely by the backup dir contents).
     #[serde(default)]
     pub items: Vec<String>,
+    /// Chosen direction for toggle tweaks (informational).
+    #[serde(default)]
+    pub target: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -199,12 +202,19 @@ pub fn apply_tweak(
     session: &mut Session,
     tweak: &Tweak,
     items: Option<&str>,
+    target: Option<&str>,
 ) -> Result<ApplyOutcome, BackupError> {
     let engine = registry.engine_dir();
-    let before = registry::detect(engine, tweak, items)?;
+    let opts = registry::InvokeOpts {
+        items,
+        target,
+        ..Default::default()
+    };
+    let before = registry::detect(engine, tweak, &opts)?;
     let item_list: Vec<String> = items
         .map(|s| s.split(',').map(|x| x.trim().to_string()).collect())
         .unwrap_or_default();
+    let target_owned = target.map(str::to_string);
 
     if before == DetectState::Applied {
         let rec = TweakRunRecord {
@@ -214,6 +224,7 @@ pub fn apply_tweak(
             error: None,
             backup_files: Vec::new(),
             items: item_list,
+            target: target_owned,
         };
         session.record_tweak(rec.clone())?;
         return Ok(ApplyOutcome {
@@ -225,18 +236,17 @@ pub fn apply_tweak(
 
     let backup_dir = session.tweak_backup_dir(tweak.id());
     std::fs::create_dir_all(&backup_dir).map_err(io_err(&backup_dir))?;
-    let backup_files = registry::invoke(
-        engine,
-        tweak,
-        TweakFunction::Backup,
-        Some(&backup_dir),
+    let backup_opts = registry::InvokeOpts {
+        backup_dir: Some(&backup_dir),
         items,
-    )
-    .map(|v| registry::value_as_strings(&v))?;
+        target,
+    };
+    let backup_files = registry::invoke(engine, tweak, TweakFunction::Backup, &backup_opts)
+        .map(|v| registry::value_as_strings(&v))?;
 
-    match registry::invoke(engine, tweak, TweakFunction::Apply, None, items) {
+    match registry::invoke(engine, tweak, TweakFunction::Apply, &opts) {
         Ok(value) => {
-            let after = registry::detect(engine, tweak, items).unwrap_or(DetectState::Unknown);
+            let after = registry::detect(engine, tweak, &opts).unwrap_or(DetectState::Unknown);
             let rec = TweakRunRecord {
                 id: tweak.id().to_string(),
                 status: TweakRunStatus::Applied,
@@ -244,6 +254,7 @@ pub fn apply_tweak(
                 error: None,
                 backup_files,
                 items: item_list,
+                target: target_owned.clone(),
             };
             session.record_tweak(rec.clone())?;
             Ok(ApplyOutcome {
@@ -260,6 +271,7 @@ pub fn apply_tweak(
                 error: Some(e.to_string()),
                 backup_files,
                 items: item_list,
+                target: target_owned,
             };
             session.record_tweak(rec.clone())?;
             Ok(ApplyOutcome {
@@ -296,13 +308,11 @@ pub fn revert_session(
             continue;
         };
         let backup_dir = dir.join(&rec.id);
-        match registry::invoke(
-            engine,
-            tweak,
-            TweakFunction::Revert,
-            Some(&backup_dir),
-            None,
-        ) {
+        let revert_opts = registry::InvokeOpts {
+            backup_dir: Some(&backup_dir),
+            ..Default::default()
+        };
+        match registry::invoke(engine, tweak, TweakFunction::Revert, &revert_opts) {
             Ok(_) => {
                 rec.status = TweakRunStatus::Reverted;
                 results.push((rec.id.clone(), Ok(())));
@@ -333,13 +343,11 @@ pub fn revert_tweak_in_session(
         .get(tweak_id)
         .ok_or_else(|| BackupError::SessionNotFound(format!("tweak {tweak_id} in registry")))?;
     let backup_dir = dir.join(tweak_id);
-    registry::invoke(
-        engine,
-        tweak,
-        TweakFunction::Revert,
-        Some(&backup_dir),
-        None,
-    )?;
+    let revert_opts = registry::InvokeOpts {
+        backup_dir: Some(&backup_dir),
+        ..Default::default()
+    };
+    registry::invoke(engine, tweak, TweakFunction::Revert, &revert_opts)?;
     rec.status = TweakRunStatus::Reverted;
     save_record(dir, &record)
 }

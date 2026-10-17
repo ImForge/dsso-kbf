@@ -1,0 +1,21 @@
+{
+  "id": "services-trim",
+  "name": "Trim background services (you pick which)",
+  "category": "services",
+  "description": "Sets the services YOU select to Manual start and stops them now: SysMain (prefetch/superfetch), DiagTrack (telemetry), and Print Spooler - Spooler is only offered when no physical printer is detected. Manual (not Disabled) means Windows can still start them on demand. Exact prior start type and running state are restored on revert.",
+  "impact": "low",
+  "risk": "caution",
+  "list_driven": true,
+  "requires": {
+    "os_min_build": 22000,
+    "gpu_vendor": null,
+    "cpu_vendor": null,
+    "form_factor": null
+  },
+  "touches": [
+    "service: SysMain (start type -> Manual, stopped)",
+    "service: DiagTrack (start type -> Manual, stopped)",
+    "service: Spooler (start type -> Manual, stopped; only when no printer)"
+  ],
+  "warning": "Stopping DiagTrack is fine for most people; SysMain can slightly affect app launch on HDDs; Spooler is only offered when you have no printer. All are set to Manual (not Disabled) so Windows can restart them if needed."
+}

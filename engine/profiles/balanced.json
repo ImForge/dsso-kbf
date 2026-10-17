@@ -10,6 +10,10 @@
     "disable-startup-bloat",
     "remove-appx-bloat",
     "visual-effects-performance",
-    "disable-transparency-animations"
+    "disable-transparency-animations",
+    "toggle-hags",
+    "disable-fullscreen-optimizations-global",
+    "disable-nagle",
+    "services-trim"
   ]
 }

@@ -97,6 +97,7 @@ pub fn run() {
             commands::tweaks::list_tweaks,
             commands::tweaks::detect_tweak,
             commands::tweaks::get_tweak_items,
+            commands::tweaks::get_tweak_toggle,
             commands::tweaks::apply_tweaks,
             commands::backups::list_backup_sessions,
             commands::backups::revert_backup_session,

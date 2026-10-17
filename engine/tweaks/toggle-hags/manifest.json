@@ -1,0 +1,19 @@
+{
+  "id": "toggle-hags",
+  "name": "Hardware-accelerated GPU scheduling (HAGS)",
+  "category": "gpu",
+  "description": "Turns HAGS on or off. HAGS can lower latency on recent NVIDIA/AMD GPUs with current drivers, but the effect varies by hardware and game and can be neutral or slightly negative. Defaults to the recommendation for your GPU; you choose the direction. Needs a reboot.",
+  "impact": "low",
+  "risk": "caution",
+  "toggle": true,
+  "requires": {
+    "os_min_build": 22000,
+    "gpu_vendor": null,
+    "cpu_vendor": null,
+    "form_factor": null
+  },
+  "touches": [
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers\\HwSchMode"
+  ],
+  "warning": "HAGS is not a guaranteed win. Benchmark before and after; if FPS or frametimes get worse, toggle it back. Requires a reboot to take effect."
+}

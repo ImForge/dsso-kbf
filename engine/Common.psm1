@@ -11,6 +11,51 @@ function Get-SelectedItemIds {
     return @($env:DSSO_KBF_ITEMS -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 }
 
+function Get-SelectedTarget {
+    # Parses DSSO_KBF_TARGET for toggle tweaks: 'on'|'off', or $null when unset.
+    if ([string]::IsNullOrEmpty($env:DSSO_KBF_TARGET)) { return $null }
+    $t = $env:DSSO_KBF_TARGET.Trim().ToLower()
+    if ($t -notin @('on', 'off')) { throw "DSSO_KBF_TARGET must be 'on' or 'off', got '$t'" }
+    return $t
+}
+
+function Get-PrimaryGpuVendor {
+    # Best-effort vendor of the primary/discrete GPU: nvidia > amd > intel.
+    # Used by toggle-hags to compute its recommendation without a round trip
+    # through the Rust SystemProfile.
+    $vendors = @()
+    foreach ($gpu in Get-CimInstance Win32_VideoController -ErrorAction SilentlyContinue) {
+        if ($gpu.PNPDeviceID -notlike 'PCI\*') { continue }
+        if ($gpu.PNPDeviceID -match 'VEN_10DE' -or $gpu.Name -match 'NVIDIA') { $vendors += 'nvidia' }
+        elseif ($gpu.PNPDeviceID -match 'VEN_1002|VEN_1022' -or $gpu.Name -match 'AMD|Radeon') { $vendors += 'amd' }
+        elseif ($gpu.PNPDeviceID -match 'VEN_8086' -or $gpu.Name -match 'Intel') { $vendors += 'intel' }
+    }
+    if ($vendors -contains 'nvidia') { return 'nvidia' }
+    if ($vendors -contains 'amd') { return 'amd' }
+    if ($vendors -contains 'intel') { return 'intel' }
+    return 'unknown'
+}
+
+function Get-ServiceState {
+    # Returns @{ exists; start_mode; status } for a service. start_mode is the
+    # Win32_Service StartMode string (Auto/Manual/Disabled/Boot/System).
+    param([Parameter(Mandatory)][string]$Name)
+    $svc = Get-CimInstance Win32_Service -Filter "Name='$Name'" -ErrorAction SilentlyContinue
+    if ($null -eq $svc) { return @{ exists = $false; start_mode = $null; status = $null } }
+    return @{ exists = $true; start_mode = [string]$svc.StartMode; status = [string]$svc.State }
+}
+
+function Set-ServiceStartMode {
+    # Sets a service's start type via sc.exe. $Mode: Auto|Manual|Disabled.
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][ValidateSet('Auto', 'Manual', 'Disabled')][string]$Mode
+    )
+    $scArg = switch ($Mode) { 'Auto' { 'auto' } 'Manual' { 'demand' } 'Disabled' { 'disabled' } }
+    $null = & sc.exe config $Name start= $scArg 2>&1
+    if ($LASTEXITCODE -ne 0) { throw "sc config $Name start= $scArg failed (exit $LASTEXITCODE)" }
+}
+
 function Test-Admin {
     $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
     $principal = New-Object Security.Principal.WindowsPrincipal($identity)
@@ -182,6 +227,7 @@ public static extern bool SystemParametersInfo(uint uiAction, uint uiParam, int[
     [void][DssoKbf.MouseNative]::SystemParametersInfo(0x0004, 0, $m, 0x03)
 }
 
-Export-ModuleMember -Function Get-SelectedItemIds, Test-Admin, Write-Result, Resolve-TweakPath, Test-RegValue, `
+Export-ModuleMember -Function Get-SelectedItemIds, Get-SelectedTarget, Get-PrimaryGpuVendor, `
+    Get-ServiceState, Set-ServiceStartMode, Test-Admin, Write-Result, Resolve-TweakPath, Test-RegValue, `
     Get-RegValue, Set-RegValue, Backup-RegKey, Backup-RegValues, Restore-RegValues, `
     Get-ActivePowerSchemeGuid, Get-PowerSettingAcIndex, Set-PowerSettingAcIndex, Update-MouseSettings

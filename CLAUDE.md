@@ -139,6 +139,14 @@ Rules:
 - Never `Restart-Computer`. Return `requiresReboot: true` in the result instead.
 - Engine .ps1/.psm1 files are ASCII-only: PowerShell 5.1 reads BOM-less files as ANSI and non-ASCII breaks parsing.
 
+### Toggle tweaks (owner decision 2026-10-17)
+
+A tweak with `"toggle": true` is a two-way switch (e.g. HAGS) rather than an apply-once change. It defines a fifth function `Get-Toggle` returning `@{ current = "on"|"off"; recommended = "on"|"off"; reason = "..." }`. The desired direction is passed via the `DSSO_KBF_TARGET` env var (`on`/`off`), set by Invoke-Tweak's `-Target`:
+- `Detect` with no target returns `unknown`; with a target it is `applied` when current == target.
+- `Apply`/`Backup` THROW when no target is set.
+- The GUI shows an on/off control defaulting to `recommended`; Backup/Revert restore the exact prior value.
+A tweak is never both `toggle` and `list_driven`.
+
 ### List-driven tweaks (owner decision 2026-10-17)
 
 A tweak with `"list_driven": true` additionally defines a fifth function `Get-Items` returning an array of `@{ id; name; detail; active }` — the per-machine items (e.g. detected startup entries). Selection is passed via the `DSSO_KBF_ITEMS` env var (comma-separated item ids), set by Invoke-Tweak's `-Items` parameter:
@@ -146,7 +154,7 @@ A tweak with `"list_driven": true` additionally defines a fifth function `Get-It
 - `Apply`/`Backup` THROW when no selection is set (safe by default — "all" must be explicit).
 - The CLI skips list-driven tweaks unless `DSSO_KBF_ITEMS` is set; per-item checkboxes live in the GUI.
 
-The Rust loader validates every manifest at startup and refuses to load a tweak whose `tweak.ps1` is missing any of the four functions (five for list-driven tweaks).
+The Rust loader validates every manifest at startup and refuses to load a tweak whose `tweak.ps1` is missing any of the four functions (five for list-driven tweaks: `Get-Items`; five for toggle tweaks: `Get-Toggle`).
 
 ## System profile schema
 
@@ -190,9 +198,9 @@ Safe tier:
 Caution tier:
 9. `toggle-hags` (recommend based on GPU vendor + driver; expose as a toggle, not a one-way switch)
 10. `disable-fullscreen-optimizations-global`
-11. `nvidia-low-latency-prefer-max-perf` (requires nvidia)
+11. `nvidia-low-latency-prefer-max-perf` (requires nvidia) - DEFERRED 2026-10-17: "Low Latency Mode" and "Prefer maximum performance" live in NVIDIA's nvdrsdb driver-profile blob and are only settable via NVAPI, not plain registry/PowerShell. Faking it with registry pokes would break the honesty + measurability rules. Needs a bundled NVAPI helper (nvidiaProfileInspector-style) before it can ship honestly; not implemented in phase 5.
 12. `disable-nagle` (per adapter; `impact` must be `low` and the description must be honest: Nagle only affects TCP-based games — most modern games use UDP, where this does nothing)
-13. `services-trim` (SysMain, DiagTrack, Print Spooler if no printer — detect first)
+13. `services-trim` (SysMain, DiagTrack, Print Spooler if no printer — detect first; set to Manual + stop, exact-state revert — owner decision 2026-10-17)
 
 Advanced tier:
 14. `disable-vbs-hvci` (big warning: reduces security, needs reboot)

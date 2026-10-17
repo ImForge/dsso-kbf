@@ -1,0 +1,19 @@
+{
+  "id": "disable-vbs-hvci",
+  "name": "Disable VBS / HVCI (memory integrity)",
+  "category": "security",
+  "description": "Turns off Virtualization-Based Security and Hypervisor-Enforced Code Integrity. On some CPUs this recovers a few percent FPS, at a REAL security cost: kernel exploit protections are weakened. Only for benchmarking or machines where you accept the tradeoff. Requires a reboot.",
+  "impact": "medium",
+  "risk": "advanced",
+  "requires": {
+    "os_min_build": 22000,
+    "gpu_vendor": null,
+    "cpu_vendor": null,
+    "form_factor": null
+  },
+  "touches": [
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\EnableVirtualizationBasedSecurity",
+    "HKLM\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity\\Enabled"
+  ],
+  "warning": "THIS REDUCES YOUR SECURITY. VBS/HVCI protect the kernel against exploits; disabling them trades that protection for a small FPS gain. Windows may also re-enable memory integrity after major updates. Requires a reboot. Revert any time from Backups."
+}

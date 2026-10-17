@@ -71,6 +71,15 @@ export interface TweakManifest {
   touches: string[];
   warning: string | null;
   list_driven: boolean;
+  toggle: boolean;
+}
+
+export type ToggleTarget = "on" | "off";
+
+export interface ToggleInfo {
+  current: ToggleTarget | string;
+  recommended: ToggleTarget | string;
+  reason: string;
 }
 
 export interface TweakListEntry {
@@ -88,6 +97,7 @@ export interface TweakItem {
 export interface TweakSelection {
   id: string;
   items?: string[];
+  target?: ToggleTarget;
 }
 
 export type TweakRunStatus = "applied" | "failed" | "reverted" | "skipped";
@@ -119,6 +129,7 @@ export interface TweakRunRecord {
   error: string | null;
   backup_files: string[];
   items: string[];
+  target: string | null;
 }
 
 export interface SessionRecord {

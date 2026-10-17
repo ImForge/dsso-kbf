@@ -1,9 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { applyTweaks, detectTweak, getTweakItems, listTweaks } from "../lib/ipc";
+import {
+  applyTweaks,
+  detectTweak,
+  getTweakItems,
+  getTweakToggle,
+  listTweaks,
+} from "../lib/ipc";
 import type {
   ApplySummary,
   DetectState,
   Risk,
+  ToggleInfo,
+  ToggleTarget,
   TweakItem,
   TweakListEntry,
   TweakSelection,
@@ -40,13 +48,16 @@ export default function Tweaks() {
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [items, setItems] = useState<Record<string, TweakItem[] | "loading">>({});
   const [itemChecks, setItemChecks] = useState<Record<string, Record<string, boolean>>>({});
+  const [toggles, setToggles] = useState<Record<string, ToggleInfo | "loading">>({});
+  const [toggleChoice, setToggleChoice] = useState<Record<string, ToggleTarget | "">>({});
+  const [advancedOk, setAdvancedOk] = useState(false);
   const [reviewing, setReviewing] = useState(false);
   const [applying, setApplying] = useState(false);
   const [summary, setSummary] = useState<ApplySummary | null>(null);
 
   const refreshStates = useCallback((list: TweakListEntry[]) => {
     for (const e of list) {
-      if (!e.applicable || e.manifest.list_driven) continue;
+      if (!e.applicable || e.manifest.list_driven || e.manifest.toggle) continue;
       const id = e.manifest.id;
       setStates((s) => ({ ...s, [id]: "loading" }));
       detectTweak(id)
@@ -72,6 +83,21 @@ export default function Tweaks() {
       .catch(() => setItems((m) => ({ ...m, [id]: [] })));
   };
 
+  const loadToggle = (id: string) => {
+    if (toggles[id]) return;
+    setToggles((m) => ({ ...m, [id]: "loading" }));
+    getTweakToggle(id)
+      .then((info) => setToggles((m) => ({ ...m, [id]: info })))
+      .catch((e: unknown) => {
+        setToggles((m) => {
+          const copy = { ...m };
+          delete copy[id];
+          return copy;
+        });
+        setError(String(e));
+      });
+  };
+
   const selections = useMemo<TweakSelection[]>(() => {
     if (!entries) return [];
     const out: TweakSelection[] = [];
@@ -83,12 +109,15 @@ export default function Tweaks() {
           .filter(([, on]) => on)
           .map(([itemId]) => itemId);
         if (picks.length > 0) out.push({ id, items: picks });
+      } else if (e.manifest.toggle) {
+        const target = toggleChoice[id];
+        if (target === "on" || target === "off") out.push({ id, target });
       } else if (checked[id]) {
         out.push({ id });
       }
     }
     return out;
-  }, [entries, checked, itemChecks]);
+  }, [entries, checked, itemChecks, toggleChoice]);
 
   const runApply = () => {
     setApplying(true);
@@ -181,7 +210,7 @@ export default function Tweaks() {
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      {!m.list_driven && (
+                      {!m.list_driven && !m.toggle && (
                         <input
                           type="checkbox"
                           className="mt-1 accent-emerald-500"
@@ -196,7 +225,13 @@ export default function Tweaks() {
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm text-zinc-100">{m.name}</p>
                           {e.applicable ? (
-                            <StateBadge state={m.list_driven ? undefined : states[m.id]} />
+                            m.list_driven || m.toggle ? (
+                              <span className="font-mono text-xs text-zinc-600">
+                                {m.list_driven ? "per-item" : "on/off"}
+                              </span>
+                            ) : (
+                              <StateBadge state={states[m.id]} />
+                            )
                           ) : (
                             <span className="text-xs text-zinc-600">not applicable</span>
                           )}
@@ -204,6 +239,54 @@ export default function Tweaks() {
                         <p className="mt-1 text-xs text-zinc-500">{m.description}</p>
                         {m.warning && (
                           <p className="mt-1 text-xs text-amber-400">⚠ {m.warning}</p>
+                        )}
+                        {m.toggle && e.applicable && (
+                          <div className="mt-2">
+                            {!toggles[m.id] && (
+                              <button
+                                className="text-xs text-emerald-400 hover:underline"
+                                onClick={() => loadToggle(m.id)}
+                              >
+                                Show current state &amp; recommendation…
+                              </button>
+                            )}
+                            {toggles[m.id] === "loading" && (
+                              <p className="text-xs text-zinc-600">checking…</p>
+                            )}
+                            {typeof toggles[m.id] === "object" && (
+                              <div>
+                                <p className="text-xs text-zinc-400">
+                                  Currently{" "}
+                                  <span className="font-mono text-zinc-200">
+                                    {(toggles[m.id] as ToggleInfo).current}
+                                  </span>{" "}
+                                  · recommended{" "}
+                                  <span className="font-mono text-emerald-300">
+                                    {(toggles[m.id] as ToggleInfo).recommended}
+                                  </span>
+                                </p>
+                                <p className="mt-1 text-xs text-zinc-600">
+                                  {(toggles[m.id] as ToggleInfo).reason}
+                                </p>
+                                <div className="mt-2 flex gap-3 text-xs text-zinc-300">
+                                  {(["", "on", "off"] as const).map((opt) => (
+                                    <label key={opt || "none"} className="flex items-center gap-1.5">
+                                      <input
+                                        type="radio"
+                                        className="accent-emerald-500"
+                                        name={`toggle-${m.id}`}
+                                        checked={(toggleChoice[m.id] ?? "") === opt}
+                                        onChange={() =>
+                                          setToggleChoice((c) => ({ ...c, [m.id]: opt }))
+                                        }
+                                      />
+                                      {opt === "" ? "leave as is" : `set ${opt}`}
+                                    </label>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         )}
                         {m.list_driven && e.applicable && (
                           <div className="mt-2">
@@ -266,7 +349,7 @@ export default function Tweaks() {
 
       <div className="sticky bottom-4">
         <button
-          className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-zinc-800 disabled:text-zinc-500"
+          className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
           disabled={selections.length === 0}
           onClick={() => setReviewing(true)}
         >
@@ -285,9 +368,29 @@ export default function Tweaks() {
                 const entry = findEntry(sel.id);
                 if (!entry) return null;
                 const tweakItems = items[sel.id];
+                const risk = entry.manifest.risk;
                 return (
                   <div key={sel.id}>
-                    <p className="text-sm text-zinc-200">{entry.manifest.name}</p>
+                    <p className="text-sm text-zinc-200">
+                      {entry.manifest.name}
+                      {risk !== "safe" && (
+                        <span
+                          className={`ml-2 rounded-full border px-2 py-0.5 font-mono text-[10px] ${
+                            risk === "advanced"
+                              ? "border-red-800 bg-red-950/60 text-red-300"
+                              : "border-amber-900 bg-amber-950/50 text-amber-300"
+                          }`}
+                        >
+                          {risk}
+                        </span>
+                      )}
+                      {sel.target && (
+                        <span className="ml-2 font-mono text-xs text-emerald-300">→ {sel.target}</span>
+                      )}
+                    </p>
+                    {entry.manifest.warning && (
+                      <p className="mt-1 text-xs text-amber-300">⚠ {entry.manifest.warning}</p>
+                    )}
                     <ul className="mt-1 space-y-0.5">
                       {entry.manifest.touches.map((t) => (
                         <li key={t} className="break-all font-mono text-[11px] text-zinc-500">
@@ -308,6 +411,18 @@ export default function Tweaks() {
                 );
               })}
             </div>
+            {selections.some((s) => findEntry(s.id)?.manifest.risk === "advanced") && (
+              <label className="mt-4 flex items-start gap-2 rounded-md border border-red-900 bg-red-950/40 p-3 text-xs text-red-200">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 accent-red-500"
+                  checked={advancedOk}
+                  onChange={(ev) => setAdvancedOk(ev.target.checked)}
+                />
+                I understand the advanced tweak(s) above trade real security or stability
+                protections for performance, and I accept that.
+              </label>
+            )}
             <div className="mt-5 flex justify-end gap-2">
               <button
                 className="rounded-md border border-zinc-700 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
@@ -319,7 +434,11 @@ export default function Tweaks() {
               <button
                 className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:bg-zinc-700"
                 onClick={runApply}
-                disabled={applying}
+                disabled={
+                  applying ||
+                  (!advancedOk &&
+                    selections.some((s) => findEntry(s.id)?.manifest.risk === "advanced"))
+                }
               >
                 {applying ? "Applying… (backing up first)" : "Apply with backup"}
               </button>

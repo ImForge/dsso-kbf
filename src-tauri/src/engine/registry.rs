@@ -36,6 +36,8 @@ pub enum RegistryError {
     MissingScript { id: String },
     #[error("{id}: tweak.ps1 does not define required function(s): {missing}")]
     MissingFunctions { id: String, missing: String },
+    #[error("{id}: a tweak cannot be both list_driven and toggle")]
+    ListDrivenAndToggle { id: String },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
@@ -111,6 +113,10 @@ pub struct TweakManifest {
     /// individually; such tweaks must define a fifth function, Get-Items.
     #[serde(default)]
     pub list_driven: bool,
+    /// True for two-way switches (e.g. HAGS): direction comes from
+    /// DSSO_KBF_TARGET and the tweak must define Get-Toggle.
+    #[serde(default)]
+    pub toggle: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -254,9 +260,15 @@ impl TweakRegistry {
             path: script.display().to_string(),
             source,
         })?;
+        if manifest.list_driven && manifest.toggle {
+            return Err(RegistryError::ListDrivenAndToggle { id: manifest.id });
+        }
         let mut required: Vec<&str> = REQUIRED_FUNCTIONS.to_vec();
         if manifest.list_driven {
             required.push("Get-Items");
+        }
+        if manifest.toggle {
+            required.push("Get-Toggle");
         }
         let missing: Vec<&str> = required
             .into_iter()
@@ -319,6 +331,7 @@ pub enum TweakFunction {
     Apply,
     Revert,
     GetItems,
+    GetToggle,
 }
 
 impl TweakFunction {
@@ -329,8 +342,17 @@ impl TweakFunction {
             TweakFunction::Apply => "Apply",
             TweakFunction::Revert => "Revert",
             TweakFunction::GetItems => "Get-Items",
+            TweakFunction::GetToggle => "Get-Toggle",
         }
     }
+}
+
+/// What a toggle tweak's Get-Toggle returns.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToggleInfo {
+    pub current: String,
+    pub recommended: String,
+    pub reason: String,
 }
 
 /// One entry of a list-driven tweak's Get-Items output.
@@ -386,12 +408,20 @@ pub enum InvokeError {
     },
 }
 
+/// Optional arguments for Invoke-Tweak.ps1. items and target are mutually
+/// exclusive in practice (list-driven vs toggle tweaks).
+#[derive(Default)]
+pub struct InvokeOpts<'a> {
+    pub backup_dir: Option<&'a Path>,
+    pub items: Option<&'a str>,
+    pub target: Option<&'a str>,
+}
+
 pub fn invoke(
     engine_dir: &Path,
     tweak: &Tweak,
     function: TweakFunction,
-    backup_dir: Option<&Path>,
-    items: Option<&str>,
+    opts: &InvokeOpts<'_>,
 ) -> Result<serde_json::Value, InvokeError> {
     let script = engine_dir.join("Invoke-Tweak.ps1");
     let tweak_path = tweak.script_path().display().to_string();
@@ -401,13 +431,17 @@ pub fn invoke(
         "-Function".into(),
         function.as_str().into(),
     ];
-    if let Some(dir) = backup_dir {
+    if let Some(dir) = opts.backup_dir {
         args.push("-BackupDir".into());
         args.push(dir.display().to_string());
     }
-    if let Some(items) = items {
+    if let Some(items) = opts.items {
         args.push("-Items".into());
         args.push(items.to_string());
+    }
+    if let Some(target) = opts.target {
+        args.push("-Target".into());
+        args.push(target.to_string());
     }
     let arg_refs: Vec<&str> = args.iter().map(String::as_str).collect();
     let out: FunctionOutput = powershell::run_script_json(&script, &arg_refs)?;
@@ -424,9 +458,9 @@ pub fn invoke(
 pub fn detect(
     engine_dir: &Path,
     tweak: &Tweak,
-    items: Option<&str>,
+    opts: &InvokeOpts<'_>,
 ) -> Result<DetectState, InvokeError> {
-    let value = invoke(engine_dir, tweak, TweakFunction::Detect, None, items)?;
+    let value = invoke(engine_dir, tweak, TweakFunction::Detect, opts)?;
     let state = match value.as_str() {
         Some("applied") => DetectState::Applied,
         Some("not-applied") => DetectState::NotApplied,
@@ -436,11 +470,31 @@ pub fn detect(
     Ok(state)
 }
 
+/// Run a toggle tweak's Get-Toggle.
+pub fn get_toggle(engine_dir: &Path, tweak: &Tweak) -> Result<ToggleInfo, InvokeError> {
+    let value = invoke(
+        engine_dir,
+        tweak,
+        TweakFunction::GetToggle,
+        &InvokeOpts::default(),
+    )?;
+    serde_json::from_value(value).map_err(|e| InvokeError::TweakFailed {
+        id: tweak.manifest.id.clone(),
+        function: "Get-Toggle",
+        message: format!("invalid Get-Toggle output: {e}"),
+    })
+}
+
 /// Run a list-driven tweak's Get-Items. PowerShell unwraps single-element
 /// arrays at function boundaries, so a lone object is normalised back into a
 /// one-element list.
 pub fn get_items(engine_dir: &Path, tweak: &Tweak) -> Result<Vec<TweakItem>, InvokeError> {
-    let value = invoke(engine_dir, tweak, TweakFunction::GetItems, None, None)?;
+    let value = invoke(
+        engine_dir,
+        tweak,
+        TweakFunction::GetItems,
+        &InvokeOpts::default(),
+    )?;
     let raw = match value {
         serde_json::Value::Array(a) => a,
         serde_json::Value::Null => Vec::new(),
@@ -519,10 +573,48 @@ mod tests {
     fn real_engine_tweaks_all_load() {
         let (reg, errors) = TweakRegistry::load(&repo_engine_dir());
         assert!(errors.is_empty(), "refused tweaks: {errors:?}");
-        assert_eq!(reg.all().len(), 9);
+        assert_eq!(reg.all().len(), 14);
         assert!(reg.get("disable-game-dvr").is_some());
         let startup = reg.get("disable-startup-bloat").expect("startup tweak");
         assert!(startup.manifest.list_driven);
+        let hags = reg.get("toggle-hags").expect("hags tweak");
+        assert!(hags.manifest.toggle);
+        assert_eq!(hags.manifest.risk, Risk::Caution);
+        let vbs = reg.get("disable-vbs-hvci").expect("vbs tweak");
+        assert_eq!(vbs.manifest.risk, Risk::Advanced);
+        assert!(vbs.manifest.warning.is_some());
+    }
+
+    #[test]
+    fn toggle_without_get_toggle_is_refused() {
+        let dir = std::env::temp_dir()
+            .join("dsso-kbf-test-manifest")
+            .join("bad-toggle-tweak");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("mkdir");
+        std::fs::write(
+            dir.join("manifest.json"),
+            r#"{
+              "id": "bad-toggle-tweak", "name": "x", "category": "x", "description": "x",
+              "impact": "low", "risk": "caution", "toggle": true,
+              "requires": { "os_min_build": null, "gpu_vendor": null, "cpu_vendor": null, "form_factor": null },
+              "touches": ["HKLM\\X"], "warning": "w"
+            }"#,
+        )
+        .expect("write manifest");
+        std::fs::write(
+            dir.join("tweak.ps1"),
+            "function Detect {}\nfunction Backup {}\nfunction Apply {}\nfunction Revert {}\n",
+        )
+        .expect("write script");
+
+        let err = TweakRegistry::load_one(&dir).expect_err("must refuse");
+        match err {
+            RegistryError::MissingFunctions { missing, .. } => {
+                assert!(missing.contains("Get-Toggle"), "{missing}");
+            }
+            other => panic!("wrong error: {other}"),
+        }
     }
 
     #[test]

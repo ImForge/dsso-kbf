@@ -4,9 +4,10 @@
 
 param(
     [Parameter(Mandatory)][string]$TweakPath,
-    [Parameter(Mandatory)][ValidateSet('Detect', 'Backup', 'Apply', 'Revert', 'Get-Items')][string]$Function,
+    [Parameter(Mandatory)][ValidateSet('Detect', 'Backup', 'Apply', 'Revert', 'Get-Items', 'Get-Toggle')][string]$Function,
     [string]$BackupDir,
-    [string]$Items
+    [string]$Items,
+    [string]$Target
 )
 
 Set-StrictMode -Version Latest
@@ -15,6 +16,7 @@ $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'Common.psm1')
 
 if (-not [string]::IsNullOrEmpty($Items)) { $env:DSSO_KBF_ITEMS = $Items }
+if (-not [string]::IsNullOrEmpty($Target)) { $env:DSSO_KBF_TARGET = $Target }
 
 try {
     if ($Function -in @('Backup', 'Revert') -and [string]::IsNullOrEmpty($BackupDir)) {
@@ -27,6 +29,7 @@ try {
         'Apply' { Apply }
         'Revert' { Revert -BackupDir $BackupDir }
         'Get-Items' { Get-Items }
+        'Get-Toggle' { Get-Toggle }
     }
     Write-Result @{ ok = $true; value = $value }
 } catch {

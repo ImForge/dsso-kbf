@@ -1,0 +1,20 @@
+{
+  "id": "disable-fullscreen-optimizations-global",
+  "name": "Disable Fullscreen Optimizations (global default)",
+  "category": "gaming",
+  "description": "Sets the global default so games run in true exclusive fullscreen instead of the FSO borderless path. This can reduce latency in some titles and hurt others (FSO helps alt-tab and some overlays), so it is opt-in and per-game results vary.",
+  "impact": "low",
+  "risk": "caution",
+  "requires": {
+    "os_min_build": 22000,
+    "gpu_vendor": null,
+    "cpu_vendor": null,
+    "form_factor": null
+  },
+  "touches": [
+    "HKCU\\System\\GameConfigStore\\GameDVR_FSEBehaviorMode",
+    "HKCU\\System\\GameConfigStore\\GameDVR_HonorUserFSEBehaviorMode",
+    "HKCU\\System\\GameConfigStore\\GameDVR_DXGIHonorFSEWindowsCompatible"
+  ],
+  "warning": "Fullscreen Optimizations help some games (faster alt-tab, working overlays) and hurt others. Test your games and revert if any misbehave."
+}

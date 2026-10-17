@@ -162,7 +162,7 @@ fn cmd_list(args: &[String]) -> i32 {
         .collect();
     println!("Applicable tweaks: {}\n", tweaks.len());
     for tweak in tweaks {
-        let state = registry::detect(reg.engine_dir(), tweak, None)
+        let state = registry::detect(reg.engine_dir(), tweak, &registry::InvokeOpts::default())
             .map(|s| s.to_string())
             .unwrap_or_else(|e| format!("detect-error: {e}"));
         println!(
@@ -200,7 +200,7 @@ fn cmd_dry_run(targets: &[String]) -> i32 {
 
     println!("DRY RUN — nothing will be changed.\n");
     for tweak in tweaks {
-        let state = registry::detect(reg.engine_dir(), tweak, None)
+        let state = registry::detect(reg.engine_dir(), tweak, &registry::InvokeOpts::default())
             .map(|s| s.to_string())
             .unwrap_or_else(|e| format!("detect-error: {e}"));
         println!("{} — {}", tweak.id(), tweak.manifest.name);
@@ -229,6 +229,18 @@ fn cmd_dry_run(targets: &[String]) -> i32 {
                     }
                 }
                 Err(e) => println!("  item detection failed: {e}"),
+            }
+        }
+        if tweak.manifest.toggle {
+            match registry::get_toggle(reg.engine_dir(), tweak) {
+                Ok(t) => {
+                    println!(
+                        "  toggle: currently {} · recommended {} (choose via DSSO_KBF_TARGET or the GUI)",
+                        t.current, t.recommended
+                    );
+                    println!("    {}", t.reason);
+                }
+                Err(e) => println!("  toggle state detection failed: {e}"),
             }
         }
         println!();
@@ -299,7 +311,24 @@ fn cmd_apply(targets: &[String]) -> i32 {
         } else {
             None
         };
-        match backup::apply_tweak(&reg, &mut session, tweak, items) {
+        let target = if tweak.manifest.toggle {
+            match std::env::var("DSSO_KBF_TARGET")
+                .ok()
+                .filter(|s| !s.is_empty())
+            {
+                Some(t) if t == "on" || t == "off" => Some(t),
+                _ => {
+                    println!(
+                        "  {:<28} skipped (toggle: set DSSO_KBF_TARGET=on|off or use the GUI)",
+                        tweak.id()
+                    );
+                    continue;
+                }
+            }
+        } else {
+            None
+        };
+        match backup::apply_tweak(&reg, &mut session, tweak, items, target.as_deref()) {
             Ok(outcome) => {
                 reboot = reboot || outcome.record.requires_reboot;
                 match outcome.record.status {
