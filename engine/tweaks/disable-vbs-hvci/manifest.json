@@ -15,5 +15,5 @@
     "HKLM\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\EnableVirtualizationBasedSecurity",
     "HKLM\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity\\Enabled"
   ],
-  "warning": "THIS REDUCES YOUR SECURITY. VBS/HVCI protect the kernel against exploits; disabling them trades that protection for a small FPS gain. Windows may also re-enable memory integrity after major updates. Requires a reboot. Revert any time from Backups."
+  "warning": "THIS REDUCES YOUR SECURITY. VBS/HVCI protect the kernel against exploits; disabling them trades that protection for a small FPS gain. Windows may also re-enable memory integrity after major updates. ANTI-CHEAT NOTE: Riot Vanguard's 2026 Windows 11 baseline checks for VBS/HVCI enabled - disabling them can stop VALORANT from launching (not a ban; revert + reboot fixes it). Skip this tweak on machines that play VALORANT. Requires a reboot. Revert any time from Backups."
 }
