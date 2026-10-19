@@ -34,7 +34,7 @@ function StateBadge({ state }: { state: DetectState | "loading" | undefined }) {
     return <span className="font-mono text-xs text-zinc-600">checking…</span>;
   }
   const style: Record<DetectState, string> = {
-    applied: "border-emerald-900 bg-emerald-950/50 text-emerald-300",
+    applied: "border-cyan-900 bg-cyan-950/50 text-cyan-300",
     "not-applied": "border-zinc-700 bg-zinc-800/60 text-zinc-300",
     partial: "border-amber-900 bg-amber-950/50 text-amber-300",
     unknown: "border-zinc-800 bg-zinc-900 text-zinc-500",
@@ -175,7 +175,7 @@ export default function Tweaks() {
                 <span
                   className={
                     r.status === "applied"
-                      ? "text-emerald-400"
+                      ? "text-cyan-400"
                       : r.status === "skipped"
                         ? "text-zinc-400"
                         : "text-red-400"
@@ -213,7 +213,7 @@ export default function Tweaks() {
                     key={m.id}
                     className={`rounded-lg border p-3 ${
                       e.applicable
-                        ? "border-zinc-800 bg-zinc-900/60"
+                        ? "border-zinc-800 bg-zinc-900/70 backdrop-blur-sm"
                         : "border-zinc-900 bg-zinc-950 opacity-50"
                     }`}
                   >
@@ -222,7 +222,7 @@ export default function Tweaks() {
                         <input
                           type="checkbox"
                           aria-label={`Select ${m.name}`}
-                          className="mt-1 accent-emerald-500 disabled:opacity-40"
+                          className="mt-1 accent-cyan-500 disabled:opacity-40"
                           disabled={!e.applicable || states[m.id] === "applied"}
                           checked={checked[m.id] ?? false}
                           onChange={(ev) =>
@@ -253,7 +253,7 @@ export default function Tweaks() {
                           <div className="mt-2">
                             {!toggles[m.id] && (
                               <button
-                                className="text-xs text-emerald-400 hover:underline"
+                                className="text-xs text-cyan-400 hover:underline"
                                 onClick={() => loadToggle(m.id)}
                               >
                                 Show current state &amp; recommendation…
@@ -270,7 +270,7 @@ export default function Tweaks() {
                                     {(toggles[m.id] as ToggleInfo).current}
                                   </span>{" "}
                                   · recommended{" "}
-                                  <span className="font-mono text-emerald-300">
+                                  <span className="font-mono text-cyan-300">
                                     {(toggles[m.id] as ToggleInfo).recommended}
                                   </span>
                                 </p>
@@ -282,7 +282,7 @@ export default function Tweaks() {
                                     <label key={opt || "none"} className="flex items-center gap-1.5">
                                       <input
                                         type="radio"
-                                        className="accent-emerald-500"
+                                        className="accent-cyan-500"
                                         name={`toggle-${m.id}`}
                                         checked={(toggleChoice[m.id] ?? "") === opt}
                                         onChange={() =>
@@ -301,7 +301,7 @@ export default function Tweaks() {
                           <div className="mt-2">
                             {!tweakItems && (
                               <button
-                                className="text-xs text-emerald-400 hover:underline"
+                                className="text-xs text-cyan-400 hover:underline"
                                 onClick={() => loadItems(m.id)}
                               >
                                 Show items on this machine…
@@ -317,7 +317,7 @@ export default function Tweaks() {
                                 <p className="text-xs text-red-400">
                                   Scan failed: {tweakItems.error}{" "}
                                   <button
-                                    className="text-emerald-400 hover:underline"
+                                    className="text-cyan-400 hover:underline"
                                     onClick={() => loadItems(m.id, true)}
                                   >
                                     retry
@@ -336,7 +336,7 @@ export default function Tweaks() {
                                     <input
                                       type="checkbox"
                                       aria-label={`Select ${it.name}`}
-                                      className="mt-0.5 accent-emerald-500 disabled:opacity-40"
+                                      className="mt-0.5 accent-cyan-500 disabled:opacity-40"
                                       disabled={!it.active}
                                       checked={itemChecks[m.id]?.[it.id] ?? false}
                                       onChange={(ev) =>
@@ -375,7 +375,7 @@ export default function Tweaks() {
 
       <div className="sticky bottom-4">
         <button
-          className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+          className="w-full rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-40"
           disabled={selections.length === 0}
           onClick={() => setReviewing(true)}
         >
@@ -411,7 +411,7 @@ export default function Tweaks() {
                         </span>
                       )}
                       {sel.target && (
-                        <span className="ml-2 font-mono text-xs text-emerald-300">→ {sel.target}</span>
+                        <span className="ml-2 font-mono text-xs text-cyan-300">→ {sel.target}</span>
                       )}
                     </p>
                     {entry.manifest.warning && (
@@ -458,7 +458,7 @@ export default function Tweaks() {
                 Cancel
               </button>
               <button
-                className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-md bg-cyan-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-40"
                 onClick={runApply}
                 disabled={
                   applying ||

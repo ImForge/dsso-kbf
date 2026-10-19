@@ -3,7 +3,7 @@ import { listBackupSessions, revertBackupSession, revertBackupTweak } from "../l
 import type { SessionRecord, TweakRunStatus } from "../lib/types";
 
 const STATUS_STYLE: Record<TweakRunStatus, string> = {
-  applied: "text-emerald-400",
+  applied: "text-cyan-400",
   reverted: "text-zinc-400",
   failed: "text-red-400",
   skipped: "text-zinc-500",
@@ -119,7 +119,7 @@ export default function Backups() {
       {sessions.map((s) => {
         const revertible = s.tweaks.some((t) => t.status === "applied");
         return (
-          <section key={s.id} className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4">
+          <section key={s.id} className="rounded-lg border border-zinc-800 bg-zinc-900/70 backdrop-blur-sm p-4">
             <div className="flex items-center justify-between gap-2">
               <div>
                 <p className="font-mono text-sm text-zinc-100">{s.id}</p>

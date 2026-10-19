@@ -6,14 +6,27 @@ body,
   height: 100%;
 }
 
+/* Artwork backdrop: the motif sits left; a left-to-right scrim keeps every
+   text surface at contrast while letting it ghost through. */
+body {
+  background-color: #09090b;
+  background-image:
+    linear-gradient(to right, rgb(9 9 11 / 0.72), rgb(9 9 11 / 0.9) 45%, rgb(9 9 11 / 0.96)),
+    url("./assets/background.png");
+  background-size: cover;
+  background-position: left center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
 /* The parts the browser draws still carry the design. */
 ::selection {
-  background: rgb(16 185 129 / 0.35); /* emerald-500 */
+  background: rgb(6 182 212 / 0.4); /* cyan-500 */
   color: #fafafa;
 }
 
 :focus-visible {
-  outline: 2px solid rgb(16 185 129 / 0.8);
+  outline: 2px solid rgb(34 211 238 / 0.8); /* cyan-400 */
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -21,8 +34,8 @@ body,
 input,
 select,
 textarea {
-  caret-color: rgb(52 211 153); /* emerald-400 */
-  accent-color: rgb(16 185 129);
+  caret-color: rgb(34 211 238);
+  accent-color: rgb(6 182 212);
 }
 
 * {
@@ -36,7 +49,7 @@ textarea {
 ::-webkit-scrollbar-thumb {
   background: rgb(63 63 70);
   border-radius: 5px;
-  border: 2px solid rgb(9 9 11); /* zinc-950 */
+  border: 2px solid rgb(9 9 11);
 }
 ::-webkit-scrollbar-track {
   background: transparent;

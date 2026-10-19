@@ -24,7 +24,7 @@ function AdminBadge({ status }: { status: StartupStatus | null }) {
     <span
       className={`rounded-full border px-2.5 py-1 font-mono text-xs ${
         status.elevated
-          ? "border-emerald-900 bg-emerald-950/50 text-emerald-300"
+          ? "border-cyan-900 bg-cyan-950/50 text-cyan-300"
           : "border-red-900 bg-red-950/50 text-red-300"
       }`}
     >
@@ -50,12 +50,12 @@ export default function App() {
   };
 
   return (
-    <main className="flex min-h-full flex-col bg-zinc-950 text-zinc-100">
+    <main className="flex min-h-full flex-col text-zinc-100">
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-6">
         <header className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <h1 className="truncate text-lg font-semibold tracking-tight">
-              Da Sigma Squads Optimizer <span className="text-emerald-400">KBF</span>
+              Da Sigma Squads Optimizer <span className="text-cyan-400">KBF</span>
             </h1>
             <p className="mt-0.5 text-xs text-zinc-500">
               {status ? `Windows 11 build ${status.osBuild}.${status.osRevision}` : "…"}
@@ -71,7 +71,7 @@ export default function App() {
               aria-current={page === p.id ? "page" : undefined}
               className={`-mb-px border-b-2 px-3 py-2 text-sm transition-colors ${
                 page === p.id
-                  ? "border-emerald-500 font-medium text-zinc-100"
+                  ? "border-cyan-500 font-medium text-zinc-100"
                   : "border-transparent text-zinc-500 hover:text-zinc-300"
               }`}
               onClick={() => setPage(p.id)}

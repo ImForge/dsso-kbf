@@ -92,7 +92,7 @@ function CompareTable({ before, after }: { before: BenchmarkRun; after: Benchmar
               </td>
               <td
                 className={`py-1.5 ${
-                  unchanged ? "text-zinc-500" : improved ? "text-emerald-400" : "text-red-400"
+                  unchanged ? "text-zinc-500" : improved ? "text-cyan-400" : "text-red-400"
                 }`}
               >
                 {delta > 0 ? "+" : ""}
@@ -156,7 +156,7 @@ export default function Benchmark() {
 
   return (
     <div className="space-y-5">
-      <section className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4">
+      <section className="rounded-lg border border-zinc-800 bg-zinc-900/70 backdrop-blur-sm p-4">
         <h2 className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">
           New capture
         </h2>
@@ -164,7 +164,7 @@ export default function Benchmark() {
           <label className="text-xs text-zinc-400">
             Game exe name
             <input
-              className="mt-1 block w-44 rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 font-mono text-xs text-zinc-100 placeholder-zinc-600 focus:border-emerald-600 focus:outline-none"
+              className="mt-1 block w-44 rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 font-mono text-xs text-zinc-100 placeholder-zinc-600 focus:border-cyan-600 focus:outline-none"
               placeholder="game.exe"
               value={process}
               onChange={(e) => setProcess(e.target.value)}
@@ -186,14 +186,14 @@ export default function Benchmark() {
           <label className="text-xs text-zinc-400">
             Label (optional)
             <input
-              className="mt-1 block w-40 rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs text-zinc-100 placeholder-zinc-600 focus:border-emerald-600 focus:outline-none"
+              className="mt-1 block w-40 rounded-md border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-xs text-zinc-100 placeholder-zinc-600 focus:border-cyan-600 focus:outline-none"
               placeholder="before tweaks"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
             />
           </label>
           <button
-            className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-md bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-40"
             disabled={!!busy || process.trim() === ""}
             onClick={() => start("game")}
           >
@@ -211,7 +211,7 @@ export default function Benchmark() {
           Run the game first, then capture. Compare a "before tweaks" run against an "after"
           run below — same game, same scene, same duration, or the numbers mean nothing.
         </p>
-        {busy && <p className="mt-2 text-xs text-emerald-300">{busy}</p>}
+        {busy && <p className="mt-2 text-xs text-cyan-300">{busy}</p>}
         {error && <p className="mt-2 font-mono text-xs text-red-400">{error}</p>}
       </section>
 
@@ -238,18 +238,18 @@ export default function Benchmark() {
           {runs?.map((r) => (
             <label
               key={r.id}
-              className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-3"
+              className="flex items-start gap-3 rounded-lg border border-zinc-800 bg-zinc-900/70 backdrop-blur-sm p-3"
             >
               <input
                 type="checkbox"
-                className="mt-0.5 accent-emerald-500"
+                className="mt-0.5 accent-cyan-500"
                 checked={picked.includes(r.id)}
                 onChange={(e) => pick(r.id, e.target.checked)}
               />
               <div className="min-w-0 flex-1">
                 <p className="font-mono text-xs text-zinc-200">
                   {r.id}
-                  {r.label && <span className="ml-2 text-emerald-300">{r.label}</span>}
+                  {r.label && <span className="ml-2 text-cyan-300">{r.label}</span>}
                   <span className="ml-2 text-zinc-500">
                     {r.game ? `game · ${r.process} · ${r.duration_s}s` : "system snapshot"}
                   </span>

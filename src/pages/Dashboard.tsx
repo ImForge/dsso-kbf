@@ -4,7 +4,7 @@ import type { SystemProfile } from "../lib/types";
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="rounded-lg border border-zinc-800 bg-zinc-900/60 p-4">
+    <section className="rounded-lg border border-zinc-800 bg-zinc-900/70 backdrop-blur-sm p-4">
       <h2 className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">
         {title}
       </h2>
@@ -20,11 +20,11 @@ function Chip({ label, on, invert }: { label: string; on: boolean; invert?: bool
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${
         good
-          ? "border-emerald-900 bg-emerald-950/50 text-emerald-300"
+          ? "border-cyan-900 bg-cyan-950/50 text-cyan-300"
           : "border-zinc-700 bg-zinc-800/60 text-zinc-400"
       }`}
     >
-      <span className={`h-1.5 w-1.5 rounded-full ${good ? "bg-emerald-400" : "bg-zinc-500"}`} />
+      <span className={`h-1.5 w-1.5 rounded-full ${good ? "bg-cyan-400" : "bg-zinc-500"}`} />
       {label}: {on ? "on" : "off"}
     </span>
   );
@@ -43,7 +43,7 @@ function gb(mb: number): string {
 
 function SkeletonCard() {
   return (
-    <div className="animate-pulse rounded-lg border border-zinc-800 bg-zinc-900/60 p-4">
+    <div className="animate-pulse rounded-lg border border-zinc-800 bg-zinc-900/70 backdrop-blur-sm p-4">
       <div className="h-2.5 w-20 rounded bg-zinc-800" />
       <div className="mt-4 h-3.5 w-3/4 rounded bg-zinc-800" />
       <div className="mt-2 h-3 w-1/2 rounded bg-zinc-800/70" />
@@ -85,7 +85,7 @@ export default function Dashboard() {
     return (
       <div>
         <p className="mb-4 flex items-center gap-2 text-sm text-zinc-500">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+          <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-400" />
           Profiling this machine…
         </p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
