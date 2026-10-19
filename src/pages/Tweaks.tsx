@@ -23,6 +23,11 @@ const RISK_LABEL: Record<Risk, string> = {
   caution: "Caution — opt-in",
   advanced: "Advanced — opt-in",
 };
+const RISK_BLURB: Record<Risk, string> = {
+  safe: "Low-risk defaults. Every one is backed up and revertible.",
+  caution: "Worth it in specific setups — read each warning before selecting.",
+  advanced: "Real security or stability tradeoffs. Requires explicit confirmation.",
+};
 
 function StateBadge({ state }: { state: DetectState | "loading" | undefined }) {
   if (state === undefined || state === "loading") {
@@ -46,7 +51,9 @@ export default function Tweaks() {
   const [error, setError] = useState<string | null>(null);
   const [states, setStates] = useState<Record<string, DetectState | "loading">>({});
   const [checked, setChecked] = useState<Record<string, boolean>>({});
-  const [items, setItems] = useState<Record<string, TweakItem[] | "loading">>({});
+  const [items, setItems] = useState<
+    Record<string, TweakItem[] | "loading" | { error: string }>
+  >({});
   const [itemChecks, setItemChecks] = useState<Record<string, Record<string, boolean>>>({});
   const [toggles, setToggles] = useState<Record<string, ToggleInfo | "loading">>({});
   const [toggleChoice, setToggleChoice] = useState<Record<string, ToggleTarget | "">>({});
@@ -75,12 +82,12 @@ export default function Tweaks() {
       .catch((e: unknown) => setError(String(e)));
   }, [refreshStates]);
 
-  const loadItems = (id: string) => {
-    if (items[id]) return;
+  const loadItems = (id: string, force = false) => {
+    if (items[id] && !force) return;
     setItems((m) => ({ ...m, [id]: "loading" }));
     getTweakItems(id)
       .then((list) => setItems((m) => ({ ...m, [id]: list })))
-      .catch(() => setItems((m) => ({ ...m, [id]: [] })));
+      .catch((e: unknown) => setItems((m) => ({ ...m, [id]: { error: String(e) } })));
   };
 
   const loadToggle = (id: string) => {
@@ -196,6 +203,7 @@ export default function Tweaks() {
             <h2 className="text-[11px] font-semibold uppercase tracking-widest text-zinc-500">
               {RISK_LABEL[risk]}
             </h2>
+            <p className="mt-0.5 text-xs text-zinc-600">{RISK_BLURB[risk]}</p>
             <div className="mt-2 space-y-2">
               {group.map((e) => {
                 const m = e.manifest;
@@ -213,8 +221,9 @@ export default function Tweaks() {
                       {!m.list_driven && !m.toggle && (
                         <input
                           type="checkbox"
-                          className="mt-1 accent-emerald-500"
-                          disabled={!e.applicable}
+                          aria-label={`Select ${m.name}`}
+                          className="mt-1 accent-emerald-500 disabled:opacity-40"
+                          disabled={!e.applicable || states[m.id] === "applied"}
                           checked={checked[m.id] ?? false}
                           onChange={(ev) =>
                             setChecked((c) => ({ ...c, [m.id]: ev.target.checked }))
@@ -301,8 +310,24 @@ export default function Tweaks() {
                             {tweakItems === "loading" && (
                               <p className="text-xs text-zinc-600">scanning…</p>
                             )}
+                            {typeof tweakItems === "object" &&
+                              !Array.isArray(tweakItems) &&
+                              tweakItems !== null &&
+                              "error" in tweakItems && (
+                                <p className="text-xs text-red-400">
+                                  Scan failed: {tweakItems.error}{" "}
+                                  <button
+                                    className="text-emerald-400 hover:underline"
+                                    onClick={() => loadItems(m.id, true)}
+                                  >
+                                    retry
+                                  </button>
+                                </p>
+                              )}
                             {Array.isArray(tweakItems) && tweakItems.length === 0 && (
-                              <p className="text-xs text-zinc-600">nothing found</p>
+                              <p className="text-xs text-zinc-600">
+                                Nothing on this machine for this tweak.
+                              </p>
                             )}
                             {Array.isArray(tweakItems) && tweakItems.length > 0 && (
                               <ul className="space-y-1">
@@ -310,7 +335,8 @@ export default function Tweaks() {
                                   <li key={it.id} className="flex items-start gap-2">
                                     <input
                                       type="checkbox"
-                                      className="mt-0.5 accent-emerald-500"
+                                      aria-label={`Select ${it.name}`}
+                                      className="mt-0.5 accent-emerald-500 disabled:opacity-40"
                                       disabled={!it.active}
                                       checked={itemChecks[m.id]?.[it.id] ?? false}
                                       onChange={(ev) =>
@@ -432,7 +458,7 @@ export default function Tweaks() {
                 Cancel
               </button>
               <button
-                className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:bg-zinc-700"
+                className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
                 onClick={runApply}
                 disabled={
                   applying ||

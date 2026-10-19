@@ -15,8 +15,8 @@ Tauri 2 (Rust + React/TypeScript) GUI and a `dsso-cli.exe` console tool, both wr
 ## Screenshots
 
 ![Dashboard](docs/screenshots/dashboard.png)
-![Tweaks](docs/screenshots/tweaks.png)
 ![Benchmark](docs/screenshots/benchmark.png)
+![Backups](docs/screenshots/backups.png)
 
 ## What it tweaks
 

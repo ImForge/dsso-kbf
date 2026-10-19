@@ -4,6 +4,7 @@ use crate::engine::{logging, system};
 pub fn startup_status() -> system::StartupStatus {
     let os = system::os_info();
     system::StartupStatus {
+        version: env!("CARGO_PKG_VERSION").to_string(),
         elevated: system::is_elevated(),
         os_build: os.build,
         os_revision: os.revision,

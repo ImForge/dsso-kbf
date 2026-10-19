@@ -3,6 +3,7 @@
 // snake_case JSON schema from CLAUDE.md.
 
 export interface StartupStatus {
+  version: string;
   elevated: boolean;
   osBuild: number;
   osRevision: number;

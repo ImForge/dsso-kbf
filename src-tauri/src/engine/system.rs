@@ -9,6 +9,7 @@ pub const MIN_SUPPORTED_BUILD: u32 = 22000;
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StartupStatus {
+    pub version: String,
     pub elevated: bool,
     pub os_build: u32,
     pub os_revision: u32,

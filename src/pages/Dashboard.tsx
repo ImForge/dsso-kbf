@@ -41,29 +41,59 @@ function gb(mb: number): string {
   return `${(mb / 1024).toFixed(mb % 1024 === 0 ? 0 : 1)} GB`;
 }
 
+function SkeletonCard() {
+  return (
+    <div className="animate-pulse rounded-lg border border-zinc-800 bg-zinc-900/60 p-4">
+      <div className="h-2.5 w-20 rounded bg-zinc-800" />
+      <div className="mt-4 h-3.5 w-3/4 rounded bg-zinc-800" />
+      <div className="mt-2 h-3 w-1/2 rounded bg-zinc-800/70" />
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [profile, setProfile] = useState<SystemProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    getSystemProfile()
+  const load = (refresh: boolean) => {
+    setError(null);
+    if (refresh) setRefreshing(true);
+    getSystemProfile(refresh)
       .then(setProfile)
-      .catch((e: unknown) => setError(String(e)));
-  }, []);
+      .catch((e: unknown) => setError(String(e)))
+      .finally(() => setRefreshing(false));
+  };
+
+  useEffect(() => load(false), []);
 
   if (error) {
     return (
-      <div className="rounded-lg border border-red-900 bg-red-950/40 p-4 font-mono text-sm text-red-300">
-        Detection failed: {error}
+      <div className="rounded-lg border border-red-900 bg-red-950/40 p-4 text-sm text-red-300">
+        <p className="font-mono">Detection failed: {error}</p>
+        <button
+          className="mt-3 rounded-md border border-red-800 px-3 py-1.5 text-xs text-red-200 hover:bg-red-950"
+          onClick={() => load(true)}
+        >
+          Try again
+        </button>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-4 text-sm text-zinc-500">
-        <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-        Profiling this machine…
+      <div>
+        <p className="mb-4 flex items-center gap-2 text-sm text-zinc-500">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+          Profiling this machine…
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
       </div>
     );
   }
@@ -72,6 +102,18 @@ export default function Dashboard() {
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="flex items-center justify-between sm:col-span-2">
+        <p className="text-xs text-zinc-600">
+          Detected hardware — tweak eligibility is based on this.
+        </p>
+        <button
+          className="rounded-md border border-zinc-700 px-2.5 py-1 text-xs text-zinc-300 hover:bg-zinc-800 disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={refreshing}
+          onClick={() => load(true)}
+        >
+          {refreshing ? "Re-detecting…" : "Re-detect"}
+        </button>
+      </div>
       <Card title="System">
         <p className="text-sm text-zinc-100">
           Windows 11 {os.version} <span className="text-zinc-500">· {os.edition}</span>

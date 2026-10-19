@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { getStartupStatus } from "./lib/ipc";
 import type { StartupStatus } from "./lib/types";
 import Backups from "./pages/Backups";
@@ -35,6 +36,7 @@ function AdminBadge({ status }: { status: StartupStatus | null }) {
 export default function App() {
   const [status, setStatus] = useState<StartupStatus | null>(null);
   const [page, setPage] = useState<Page>("dashboard");
+  const [logNote, setLogNote] = useState<string | null>(null);
 
   useEffect(() => {
     getStartupStatus()
@@ -42,12 +44,17 @@ export default function App() {
       .catch(() => setStatus(null));
   }, []);
 
+  const openLogs = () => {
+    if (!status) return;
+    revealItemInDir(status.logDir).catch(() => setLogNote(status.logDir));
+  };
+
   return (
-    <main className="min-h-full bg-zinc-950 text-zinc-100">
-      <div className="mx-auto max-w-3xl px-6 py-6">
-        <header className="flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight">
+    <main className="flex min-h-full flex-col bg-zinc-950 text-zinc-100">
+      <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-6">
+        <header className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="truncate text-lg font-semibold tracking-tight">
               Da Sigma Squads Optimizer <span className="text-emerald-400">KBF</span>
             </h1>
             <p className="mt-0.5 text-xs text-zinc-500">
@@ -57,11 +64,12 @@ export default function App() {
           <AdminBadge status={status} />
         </header>
 
-        <nav className="mt-5 flex gap-1 border-b border-zinc-800">
+        <nav aria-label="Pages" className="mt-5 flex gap-1 border-b border-zinc-800">
           {PAGES.map((p) => (
             <button
               key={p.id}
-              className={`-mb-px border-b-2 px-3 py-2 text-sm ${
+              aria-current={page === p.id ? "page" : undefined}
+              className={`-mb-px border-b-2 px-3 py-2 text-sm transition-colors ${
                 page === p.id
                   ? "border-emerald-500 font-medium text-zinc-100"
                   : "border-transparent text-zinc-500 hover:text-zinc-300"
@@ -73,12 +81,26 @@ export default function App() {
           ))}
         </nav>
 
-        <div className="mt-6 pb-10">
+        <div className="mt-6 flex-1 pb-8">
           {page === "dashboard" && <Dashboard />}
           {page === "tweaks" && <Tweaks />}
           {page === "benchmark" && <Benchmark />}
           {page === "backups" && <Backups />}
         </div>
+
+        <footer className="mt-auto flex items-center justify-between border-t border-zinc-900 pt-3 text-xs text-zinc-600">
+          <span>{status ? `v${status.version}` : ""}</span>
+          <span className="flex items-center gap-2">
+            {logNote && <span className="font-mono text-zinc-500">{logNote}</span>}
+            <button
+              className="hover:text-zinc-400 hover:underline"
+              onClick={openLogs}
+              disabled={!status}
+            >
+              Open logs folder
+            </button>
+          </span>
+        </footer>
       </div>
     </main>
   );
